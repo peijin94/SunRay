@@ -7,12 +7,12 @@ from sunRay.parameters import dev_u
 import torch
 
 # initialize
-steps_N  = 100;       # number of the step
-collect_N = 30;       # number of recorded step
+steps_N  = 3000;       # number of the step
+collect_N = 40;       # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 5         # number of photon
+photon_N = 2         # number of photon
 start_r = 1.5;        # in solar radii
 start_theta = 0.1;    # in rad
 start_phi  = 0;       # in rad
@@ -67,13 +67,14 @@ kc = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 # before record steps for diff
 domega_pe_dxyz = pfreq.domega_dxyz(ne_r,r_vec.detach())
 
-Exp_size = 1.25*30./freq0
+Exp_size = 1.25*30./(freq0/1e6)
 dt0 = 0.01*Exp_size/c_r
 tau = torch.zeros(rr.shape).to(dev_u)
 
 # collect the variables of the simulation
 collectPoints = np.round(np.linspace(0,steps_N-1,collect_N))
 r_vec_collect = torch.zeros(collect_N,3,photon_N).to(dev_u)
+k_vec_collect = torch.zeros(collect_N,3,photon_N).to(dev_u)
 t_collect = torch.zeros(collect_N).to(dev_u)
 idx_collect  =  0
 t_current = 0
@@ -101,6 +102,7 @@ for idx_step in np.arange(steps_N):
         dt_dr  = torch.min(rr/omega0*kc)/t_param
         dt = torch.Tensor([np.min([1.0/torch.max(nu_s),dt_ref,dt_dr,dt0])]).to(dev_u)
 
+    
         g0 = torch.sqrt(nu_s*kc**2)
 
         # position step vec
@@ -175,9 +177,17 @@ for idx_step in np.arange(steps_N):
     if idx_step in collectPoints:
         t_collect[idx_collect] = t_current
         r_vec_collect[idx_collect,:,:] = r_vec
+        k_vec_collect[idx_collect,:,:] = k_vec
         idx_collect = idx_collect +1
 
 t_collect_local = t_collect.cpu().data.numpy()
 r_vec_collect_local  = r_vec_collect.cpu().data.numpy()
+
+#plt.figure(1)
+#plt.plot(t_collect_local, r_vec_collect_local[:,0,0])
+#plt.figure(2)
+#plt.plot( r_vec_collect_local[:,0,0], r_vec_collect_local[:,1,0])
+
+plt.show()
 
 print(t_collect_local)
