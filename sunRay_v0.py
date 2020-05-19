@@ -8,11 +8,11 @@ import torch
 
 # initialize
 steps_N  = 3000;       # number of the step
-collect_N = 40;       # number of recorded step
+collect_N = 100;       # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 2         # number of photon
+photon_N = 300         # number of photon
 start_r = 1.5;        # in solar radii
 start_theta = 0.1;    # in rad
 start_phi  = 0;       # in rad
@@ -22,30 +22,32 @@ c   = 2.998e10        # speed of light
 c_r = c/R_S           # [t]
 
 f_ratio  = 1.05       # f/f_pe
-ne_r = dm.leblanc98   # use leblanc for this calculation 
+ne_r = dm.parkerfit   # use leblanc for this calculation 
 epsilon = 0.1         # fluctuation scale
 anis = 0.1            # the anisotropic parameter
 asym = 1.0            # asymetric scale
 
 Te = 86.0             # eV temperature in eV
 
-nu_e = 2.91e-6*ne_r(start_r)*20./Te**1.5
+start_r = torch.tensor([start_r])  # put variable in device
+nu_e = 2.91e-6*ne_r( start_r )*20./Te**1.5
+
+PI = torch.acos(torch.Tensor([-1])).to(dev_u)
 
 # frequency of the wave
-freq0 = f_ratio * pfreq.omega_pe_r(ne_r,start_r)/(2*np.pi)
+freq0 = f_ratio * pfreq.omega_pe_r(ne_r,start_r.to(dev_u))/(2*PI)
 print('----------------------------------')
-print('Frequency : '+str(freq0/1e6)[0:6]+'MHz')
+print('Frequency : '+str(freq0.cpu().data.numpy()/1e6)[0:6]+'MHz')
 print('Compute with : '+str(dev_u))
 print('----------------------------------')
 
-PI = torch.acos(torch.Tensor([-1])).to(dev_u)
-freq0 = torch.Tensor([freq0]).to(dev_u)
+#freq0 = torch.Tensor([freq0]).to(dev_u)
 
 # position of the photons
 rxx = start_r * np.sin(start_theta) * np.cos(start_phi) * np.ones(photon_N)
 ryy = start_r * np.sin(start_theta) * np.sin(start_phi) * np.ones(photon_N)
 rzz = start_r * np.cos(start_theta) * np.ones(photon_N)
-rr = start_r * torch.ones(photon_N).to(dev_u)
+rr = start_r.to(dev_u) * torch.ones(photon_N).to(dev_u)
 
 omega0 = freq0*(2*PI)
 nu_s0 = scat.nuScattering(rr,omega0,epsilon,ne_r)
@@ -59,7 +61,7 @@ kxx_k = kc0 * torch.sqrt(1-k_mu0**2.) * torch.cos(k_phi0)
 kyy_k = kc0 * torch.sqrt(1-k_mu0**2.) * torch.sin(k_phi0)
 kzz_k = kc0 * k_mu0
 
-r_vec = torch.Tensor(np.array([rxx,ryy,rzz])).to(dev_u)
+r_vec = torch.stack((rxx,ryy,rzz),0).to(dev_u)
 k_vec = torch.stack((kxx_k,kyy_k,kzz_k),0).to(dev_u)
 kc = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
@@ -88,6 +90,8 @@ for idx_step in np.arange(steps_N):
     nu_s = scat.nuScattering(rr,omega,epsilon,ne_r)
     nu_s = nu_s*(nu_s<nu_s0)+nu_s0*(nu_s>=nu_s0) # use the smaller nu_s
 
+    # diff ne mabe the problem
+
     domega_pe_dxyz = pfreq.domega_dxyz(ne_r,r_vec.detach())
     domega_pe_dr = torch.sqrt(torch.sum(domega_pe_dxyz.pow(2),axis=0))
     with torch.no_grad():
@@ -101,12 +105,11 @@ for idx_step in np.arange(steps_N):
         dt_ref = torch.min(torch.abs(kc/ (domega_pe_dr*c_r)/t_param)) # t step
         dt_dr  = torch.min(rr/omega0*kc)/t_param
         dt = torch.Tensor([np.min([1.0/torch.max(nu_s),dt_ref,dt_dr,dt0])]).to(dev_u)
-
     
         g0 = torch.sqrt(nu_s*kc**2)
 
         # position step vec
-        dr_vec = c_r/omega.repeat(3,1)*k_vec
+        dr_vec = c_r/omega.repeat(3,1) * k_vec
 
         # random vec for wave scattering  # [3*N] normal distribution
         W_vec = torch.randn(r_vec.shape).to(dev_u) * torch.sqrt(dt) 
@@ -182,6 +185,7 @@ for idx_step in np.arange(steps_N):
 
 t_collect_local = t_collect.cpu().data.numpy()
 r_vec_collect_local  = r_vec_collect.cpu().data.numpy()
+k_vec_collect_local  = k_vec_collect.cpu().data.numpy()
 
 #plt.figure(1)
 #plt.plot(t_collect_local, r_vec_collect_local[:,0,0])
