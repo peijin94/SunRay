@@ -3,6 +3,7 @@ import numpy as np
 from sunRay import plasmaFreq as pfreq
 from sunRay import densityModel as dm
 from sunRay import scattering as scat 
+from sunRay import showPlot as SP
 from sunRay.parameters import dev_u # use GPU if available
 import torch
 
@@ -10,11 +11,11 @@ torch.set_num_threads(16)
 
 # initialize
 steps_N  = 300;       # number of the step
-collect_N = 100;       # number of recorded step
+collect_N = 100;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 200000         # number of photon
+photon_N = 200         # number of photon
 start_r = 1.5;        # in solar radii
 start_theta = 0.1;    # in rad
 start_phi  = 0;       # in rad
@@ -32,6 +33,11 @@ asym = 1.0            # asymetric scale
 Te = 86.0             # eV temperature in eV
 
 Scat_include = True   # whether to consider the  
+
+Show_param = False    # Display the parameters
+Show_result_k = False  # Show simulation result k
+Show_result_r = True   # Show simulation result r
+  
 
 # put variable in device
 start_r = torch.tensor([start_r])  
@@ -57,6 +63,9 @@ rr = start_r.to(dev_u) * torch.ones(photon_N).to(dev_u)
 
 omega0 = freq0*(2*PI)
 nu_s0 = scat.nuScattering(rr,omega0,epsilon,ne_r)
+
+if Show_param:
+    SP.showParameters(ne_r,omega0,epsilon)  
 
 # wave-vector of the photons
 kc0 = torch.sqrt(omega0**2. - pfreq.omega_pe_r(ne_r,rr)**2.)
@@ -201,3 +210,6 @@ k_vec_collect_local  = k_vec_collect.cpu().data.numpy()
 #plt.plot( r_vec_collect_local[:,0,0], r_vec_collect_local[:,1,0])
 
 print('Traced final t : '+str(t_collect_local[-1])+' s')
+
+if Show_result_r:
+    SP.showResultR(r_vec_collect_local)
