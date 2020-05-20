@@ -1,10 +1,12 @@
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from sunRay import plasmaFreq as pfreq
 from sunRay import densityModel as dm
 from sunRay import scattering as scat 
 from sunRay.parameters import dev_u # use GPU if available
 import torch
+
+torch.set_num_threads(16)
 
 # initialize
 steps_N  = 300;       # number of the step
@@ -12,7 +14,7 @@ collect_N = 100;       # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 30         # number of photon
+photon_N = 200000         # number of photon
 start_r = 1.5;        # in solar radii
 start_theta = 0.1;    # in rad
 start_phi  = 0;       # in rad
@@ -22,7 +24,7 @@ c   = 2.998e10        # speed of light
 c_r = c/R_S           # [t]
 
 f_ratio  = 1.1        # f/f_pe
-ne_r = dm.parkerfit   # use leblanc for this calculation 
+ne_r = dm.leblanc98   # use leblanc for this calculation 
 epsilon = 0.1         # fluctuation scale
 anis = 0.1            # the anisotropic parameter
 asym = 1.0            # asymetric scale
@@ -41,7 +43,7 @@ nu_e = 2.91e-6*ne_r(start_r)*20./Te**1.5
 # frequency of the wave
 freq0 = f_ratio * pfreq.omega_pe_r(ne_r,start_r.to(dev_u))/(2*PI)
 print('----------------------------------')
-print('Frequency : '+str(freq0.cpu().data.numpy()/1e6)[0:6]+'MHz')
+print('Frequency : '+str(freq0.cpu().data.numpy()/1e6)[1:7]+'MHz')
 print('Compute with : '+str(dev_u))
 print('----------------------------------')
 
@@ -58,7 +60,7 @@ nu_s0 = scat.nuScattering(rr,omega0,epsilon,ne_r)
 
 # wave-vector of the photons
 kc0 = torch.sqrt(omega0**2. - pfreq.omega_pe_r(ne_r,rr)**2.)
-k_mu0  = torch.Tensor(np.random.uniform(low=0 ,high=1,size=photon_N)).to(dev_u) # k_z > 0
+k_mu0  = torch.Tensor(np.random.uniform(low=-0.99 ,high=1,size=photon_N)).to(dev_u) # k_z > 0
 k_phi0 = torch.Tensor(np.random.uniform(low=0 ,high= 2*np.pi, size=photon_N)).to(dev_u) # phi in all dir
 
 kxx_k = kc0 * torch.sqrt(1-k_mu0**2.) * torch.cos(k_phi0)
@@ -110,7 +112,8 @@ for idx_step in np.arange(steps_N):
         dt_ref = torch.min(torch.abs(kc/ (domega_pe_dr*c_r)/t_param)) # t step
         dt_dr  = torch.min(rr/omega0*kc)/t_param
         dt = torch.Tensor([np.min([1.0/torch.max(nu_s),dt_ref,dt_dr,dt0])]).to(dev_u)
-    
+        dt = dt/3
+
         g0 = torch.sqrt(nu_s*kc**2)
 
         # position step vec
@@ -196,7 +199,5 @@ k_vec_collect_local  = k_vec_collect.cpu().data.numpy()
 #plt.plot(t_collect_local, r_vec_collect_local[:,0,0])
 #plt.figure(2)
 #plt.plot( r_vec_collect_local[:,0,0], r_vec_collect_local[:,1,0])
-
-plt.show()
 
 print('Traced final t : '+str(t_collect_local[-1])+' s')

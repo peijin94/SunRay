@@ -22,6 +22,7 @@ def domega_dxyz(ne_r,r_vec):
     return diff_vec.detach()
 
 
+@torch.enable_grad()
 def dNe_dxyz(ne_r,r_vec):
     # differential of omegape
     r_vec.requires_grad_(True)
