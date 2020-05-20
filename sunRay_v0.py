@@ -3,16 +3,16 @@ import matplotlib.pyplot as plt
 from sunRay import plasmaFreq as pfreq
 from sunRay import densityModel as dm
 from sunRay import scattering as scat 
-from sunRay.parameters import dev_u
+from sunRay.parameters import dev_u # use GPU if available
 import torch
 
 # initialize
-steps_N  = 3000;       # number of the step
+steps_N  = 300;       # number of the step
 collect_N = 100;       # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 300         # number of photon
+photon_N = 30         # number of photon
 start_r = 1.5;        # in solar radii
 start_theta = 0.1;    # in rad
 start_phi  = 0;       # in rad
@@ -21,7 +21,7 @@ R_S = 6.96e10         # the radius of the sun
 c   = 2.998e10        # speed of light
 c_r = c/R_S           # [t]
 
-f_ratio  = 1.05       # f/f_pe
+f_ratio  = 1.1        # f/f_pe
 ne_r = dm.parkerfit   # use leblanc for this calculation 
 epsilon = 0.1         # fluctuation scale
 anis = 0.1            # the anisotropic parameter
@@ -29,10 +29,14 @@ asym = 1.0            # asymetric scale
 
 Te = 86.0             # eV temperature in eV
 
-start_r = torch.tensor([start_r])  # put variable in device
-nu_e = 2.91e-6*ne_r( start_r )*20./Te**1.5
+Scat_include = True   # whether to consider the  
 
-PI = torch.acos(torch.Tensor([-1])).to(dev_u)
+# put variable in device
+start_r = torch.tensor([start_r])  
+PI = torch.acos(torch.Tensor([-1])).to(dev_u) # pi
+nu_e = 2.91e-6*ne_r(start_r)*20./Te**1.5
+
+
 
 # frequency of the wave
 freq0 = f_ratio * pfreq.omega_pe_r(ne_r,start_r.to(dev_u))/(2*PI)
@@ -91,6 +95,7 @@ for idx_step in np.arange(steps_N):
     nu_s = nu_s*(nu_s<nu_s0)+nu_s0*(nu_s>=nu_s0) # use the smaller nu_s
 
     # diff ne mabe the problem
+    # compare the diff of the CPU and GPU
 
     domega_pe_dxyz = pfreq.domega_dxyz(ne_r,r_vec.detach())
     domega_pe_dr = torch.sqrt(torch.sum(domega_pe_dxyz.pow(2),axis=0))
@@ -98,7 +103,7 @@ for idx_step in np.arange(steps_N):
         # component of r and k vector at current step
         rx_cur,ry_cur,rz_cur = r_vec[0,:],r_vec[1,:],r_vec[2,:]
         kx_cur,ky_cur,kz_cur = k_vec[0,:],k_vec[1,:],k_vec[2,:]
-        rr_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
+        rr_cur = torch.sqrt(torch.sum(r_vec.pow(2),axis=0))
         kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
         # dynamic time step
@@ -194,4 +199,4 @@ k_vec_collect_local  = k_vec_collect.cpu().data.numpy()
 
 plt.show()
 
-print(t_collect_local)
+print('Traced final t : '+str(t_collect_local[-1])+' s')
