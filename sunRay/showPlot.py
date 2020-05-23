@@ -38,7 +38,7 @@ def showResultR(r_vec_cur):
     axs[0].set_aspect('equal')
 
     axs[1].set_xlabel('Z (Rs)')
-    axs[1].set_ylabel('Y (Rs)')
+    axs[1].set_ylabel('X (Rs)')
     axs[1].set_aspect('equal')
     
     axs[2].plot(r_vec_cur[-1,0,:],r_vec_cur[-1,1,:],'k.',markersize=0.5)
