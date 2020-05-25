@@ -9,17 +9,18 @@ import torch
 import time
 
 torch.set_num_threads(40)
+torch.set_default_tensor_type(torch.DoubleTensor)
 
 # initialize
-steps_N  = 850;       # number of the step
+steps_N  = 600;       # number of the step
 collect_N = 80;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 10000      # number of photon
+photon_N = 3000      # number of photon
 start_r = 1.75;       # in solar radii
-start_theta = 0.1;    # in rad
-start_phi  = np.pi/2;       # in rad
+start_theta = 45/180.0*np.pi;    # in rad
+start_phi  = 0/180.0*np.pi;     # in rad
 
 R_S = 6.96e10         # the radius of the sun 
 c   = 2.998e10        # speed of light
@@ -67,6 +68,7 @@ ryy = start_r * torch.Tensor(np.sin(start_theta) * np.sin(start_phi) * np.ones(p
 rzz = start_r * torch.Tensor(np.cos(start_theta) * np.ones(photon_N))
 rr = start_r.to(dev_u) * torch.ones(photon_N).to(dev_u)
 rr_cur = rr # rr_cur [current rr for for loop]
+r_vec = torch.stack((rxx,ryy,rzz),0).to(dev_u)
 
 omega0 = freq0*(2*PI)
 nu_s0 = scat.nuScattering(rr,omega0,epsilon,ne_r)
@@ -91,10 +93,14 @@ else:
     # generate in xyz
     k_vec_tmp = torch.randn(3,photon_N).to(dev_u)
     k_vec = kc0 * k_vec_tmp/torch.sqrt(torch.sum(k_vec_tmp.pow(2),axis=0))
+    # ignore downward (r k not same direction)
+    idx_select = torch.nonzero(torch.sum(r_vec*k_vec,axis=0)<0)
+    k_vec[:,idx_select] = -k_vec[:,idx_select] 
+
+r_vec_start = r_vec
+k_vec_start = k_vec
 
 
-
-r_vec = torch.stack((rxx,ryy,rzz),0).to(dev_u)
 kc = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 kc_cur = kc
 
@@ -139,12 +145,10 @@ for idx_step in np.arange(steps_N):
         # dynamic time step
         dt_ref = torch.min(torch.abs(kc/ (domega_pe_dr*c_r)/t_param)) # t step
         dt_dr  = torch.min(rr_cur/omega0*kc)/t_param
-        dt = torch.Tensor([np.min([1.0/torch.max(nu_s),dt_ref,dt_dr,dt0])]).to(dev_u)
+        dt = torch.Tensor([np.nanmin([1.0/torch.max(nu_s),dt_ref,dt_dr,dt0])]).to(dev_u)
         dt = dt/3
 
         g0 = torch.sqrt(nu_s*kc**2)
-
-
 
         # random vec for wave scattering  # [3*N] normal distribution
         W_vec = torch.randn(r_vec.shape).to(dev_u) * torch.sqrt(dt) 
@@ -166,7 +170,7 @@ for idx_step in np.arange(steps_N):
 
             kw     =  Wx*kcx+Wy*kcy+Wz*kcz*anis
             Akc    = torch.sqrt(kcx*kcx+kcy*kcy+kcz*kcz*anis**2)
-            z_asym = (asym*(kcz > 0.0) + (2.0-asym)*(kcz < 0.))*(kc_cur/Akc)**2
+            z_asym = (asym*(kcz > 0.0) + (2.0-asym)*(kcz < 0.)) * (kc_cur/Akc)**2
 
             A_perp = (nu_s*z_asym* kc_cur /Akc**3 *
                 (-(1+anis**2)*Akc**2+3*anis**2 *(anis**2-1)*kcz**2) *anis)
@@ -174,11 +178,9 @@ for idx_step in np.arange(steps_N):
                 ((-3*anis**4+anis**2)*Akc**2+3*anis**4 * (anis**2-1)*kcz**2)*anis)
             A_g0   = g0*torch.sqrt(z_asym*anis)
 
-
-            kcx=kcx + A_perp*kcx*dt + A_g0*(Wx-kcx*kw/Akc**2)
-            kcy=kcy + A_perp*kcy*dt + A_g0*(Wy-kcy*kw/Akc**2)
-            kcz=kcz + A_par *kcz*dt + A_g0*(Wz-kcz*kw*anis/Akc**2)*anis
-
+            kcx = kcx + A_perp*kcx*dt + A_g0*(Wx-kcx*kw/Akc**2)
+            kcy = kcy + A_perp*kcy*dt + A_g0*(Wy-kcy*kw/Akc**2)
+            kcz = kcz + A_par *kcz*dt + A_g0*(Wz-kcz*kw*anis/Akc**2)*anis
 
             # rotate back to normal coordinate
             kx_cur = (-kcx*torch.sin(fi) 
@@ -199,8 +201,6 @@ for idx_step in np.arange(steps_N):
         k_vec = k_vec * kc_cur.repeat(3,1)/ kc_norm.repeat(3,1)
 
         # k step forward  # refraction
-        #dk_xyz_dt = ((pfreq.omega_pe_r(ne_r,rr_cur)/omega).repeat(3,1)  
-        #        * domega_pe_dxyz * c_r * r_vec/rr_cur.repeat(3,1)) 
         dk_xyz_dt = ((pfreq.omega_pe_r(ne_r,rr_cur)/omega).repeat(3,1)   
                     * domega_pe_dxyz) * c_r
         k_vec = k_vec - dk_xyz_dt * dt
@@ -216,7 +216,7 @@ for idx_step in np.arange(steps_N):
         # re-normalize  # to keep omega stable
         kc_refresh = (torch.sqrt(omega**2-pfreq.omega_pe_r(ne_r,rr_cur)**2)
             /torch.sqrt(torch.sum(k_vec.pow(2),axis=0)))
-        k_vec = k_vec * kc_refresh
+        k_vec = k_vec * kc_refresh.repeat(3,1)
 
         nu_e = (2.91e-6*ne_r(rr_cur)*20./Te**1.5
             *pfreq.omega_pe_r(ne_r, rr_cur)**2/omega**2)
