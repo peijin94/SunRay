@@ -12,14 +12,14 @@ torch.set_num_threads(40)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 # initialize
-steps_N  = 600;       # number of the step
+steps_N  = 800;       # number of the step
 collect_N = 80;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
 photon_N = 3000      # number of photon
 start_r = 1.75;       # in solar radii
-start_theta = 45/180.0*np.pi;    # in rad
+start_theta = 1/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
 
 R_S = 6.96e10         # the radius of the sun 
@@ -94,7 +94,7 @@ else:
     k_vec_tmp = torch.randn(3,photon_N).to(dev_u)
     k_vec = kc0 * k_vec_tmp/torch.sqrt(torch.sum(k_vec_tmp.pow(2),axis=0))
     # ignore downward (r k not same direction)
-    idx_select = torch.nonzero(torch.sum(r_vec*k_vec,axis=0)<0)
+    idx_select = torch.nonzero(torch.sum(r_vec*k_vec,axis=0)<0,as_tuple=False)
     k_vec[:,idx_select] = -k_vec[:,idx_select] 
 
 r_vec_start = r_vec
@@ -128,14 +128,16 @@ for idx_step in np.arange(steps_N):
     freq_pe = omega/(2*PI)
 
     nu_s = scat.nuScattering(rr_cur,omega,epsilon,ne_r)
-    nu_s = nu_s*(nu_s<nu_s0)+nu_s0*(nu_s>=nu_s0) # use the smaller nu_s
+    nu_s = nu_s*(nu_s<nu_s0)+nu_s0*(~(nu_s<nu_s0)) # use the smaller nu_s
 
-    # diff ne mabe the problem
     # compare the diff of the CPU and GPU
 
     domega_pe_dxyz = pfreq.domega_dxyz(ne_r,r_vec.detach())
     domega_pe_dr = torch.sqrt(torch.sum(domega_pe_dxyz.pow(2),axis=0))
-    with torch.no_grad():
+
+    with torch.no_grad(): # no autograd in following calc
+        dr_vec = c_r/omega.repeat(3,1) * k_vec    
+
         # component of r and k vector at current step
         rr_cur = torch.sqrt(torch.sum(r_vec.pow(2),axis=0))
         kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
@@ -143,12 +145,12 @@ for idx_step in np.arange(steps_N):
         kx_cur,ky_cur,kz_cur = k_vec[0,:],k_vec[1,:],k_vec[2,:]
 
         # dynamic time step
-        dt_ref = torch.min(torch.abs(kc/ (domega_pe_dr*c_r)/t_param)) # t step
-        dt_dr  = torch.min(rr_cur/omega0*kc)/t_param
+        dt_ref = torch.min(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
+        dt_dr  = torch.min(rr_cur/omega0*kc_cur)/t_param
         dt = torch.Tensor([np.nanmin([1.0/torch.max(nu_s),dt_ref,dt_dr,dt0])]).to(dev_u)
         dt = dt/3
 
-        g0 = torch.sqrt(nu_s*kc**2)
+        g0 = torch.sqrt(nu_s*kc_cur**2)
 
         # random vec for wave scattering  # [3*N] normal distribution
         W_vec = torch.randn(r_vec.shape).to(dev_u) * torch.sqrt(dt) 
@@ -169,13 +171,13 @@ for idx_step in np.arange(steps_N):
                 + ky_cur*sintheta*torch.sin(fi) + kz_cur*costheta)
 
             kw     =  Wx*kcx+Wy*kcy+Wz*kcz*anis
-            Akc    = torch.sqrt(kcx*kcx+kcy*kcy+kcz*kcz*anis**2)
-            z_asym = (asym*(kcz > 0.0) + (2.0-asym)*(kcz < 0.)) * (kc_cur/Akc)**2
+            Akc    = torch.sqrt(kcx*kcx+kcy*kcy+kcz*kcz*(anis**2))
+            z_asym = (asym*(kcz > 0.0) + (2.0-asym)*(~(kcz>0.))) * (kc_cur/Akc)**2
 
-            A_perp = (nu_s*z_asym* kc_cur /Akc**3 *
+            A_perp = (nu_s*z_asym* kc_cur /(Akc**3) *
                 (-(1+anis**2)*Akc**2+3*anis**2 *(anis**2-1)*kcz**2) *anis)
-            A_par  = (nu_s*z_asym* kc_cur /Akc**3 *
-                ((-3*anis**4+anis**2)*Akc**2+3*anis**4 * (anis**2-1)*kcz**2)*anis)
+            A_par  = (nu_s*z_asym* kc_cur /(Akc**3) *
+                ((-3*anis**4+anis**2)*(Akc**2)+3*anis**4 * (anis**2-1)*kcz**2)*anis)
             A_g0   = g0*torch.sqrt(z_asym*anis)
 
             kcx = kcx + A_perp*kcx*dt + A_g0*(Wx-kcx*kw/Akc**2)
@@ -206,7 +208,6 @@ for idx_step in np.arange(steps_N):
         k_vec = k_vec - dk_xyz_dt * dt
 
         # r step forward
-        dr_vec = c_r/omega.repeat(3,1) * k_vec
         r_vec = r_vec + dr_vec * dt
 
         # update abs after vec change        
