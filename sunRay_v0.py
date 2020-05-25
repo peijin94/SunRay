@@ -8,18 +8,18 @@ from sunRay.parameters import dev_u # use GPU if available
 import torch
 import time
 
-torch.set_num_threads(6)
+torch.set_num_threads(40)
 
 # initialize
-steps_N  = 1500;       # number of the step
-collect_N = 100;      # number of recorded step
+steps_N  = 850;       # number of the step
+collect_N = 80;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 100        # number of photon
-start_r = 1.75;        # in solar radii
+photon_N = 10000      # number of photon
+start_r = 1.75;       # in solar radii
 start_theta = 0.1;    # in rad
-start_phi  = 0;       # in rad
+start_phi  = np.pi/2;       # in rad
 
 R_S = 6.96e10         # the radius of the sun 
 c   = 2.998e10        # speed of light
@@ -33,12 +33,16 @@ asym = 1.0            # asymetric scale
 
 Te = 86.0             # eV temperature in eV
 
+# debug parameters
+
 Scat_include = True   # whether to consider the  
 
 Show_param = True      # Display the parameters
 Show_result_k = False  # Show simulation result k
 Show_result_r = True   # Show simulation result r
 verb_out = False       # print message
+
+sphere_gen = False
   
 
 # put variable in device
@@ -58,9 +62,9 @@ print('----------------------------------')
 #freq0 = torch.Tensor([freq0]).to(dev_u)
 
 # position of the photons
-rxx = start_r * np.sin(start_theta) * np.cos(start_phi) * np.ones(photon_N)
-ryy = start_r * np.sin(start_theta) * np.sin(start_phi) * np.ones(photon_N)
-rzz = start_r * np.cos(start_theta) * np.ones(photon_N)
+rxx = start_r * torch.Tensor(np.sin(start_theta) * np.cos(start_phi) * np.ones(photon_N))
+ryy = start_r * torch.Tensor(np.sin(start_theta) * np.sin(start_phi) * np.ones(photon_N))
+rzz = start_r * torch.Tensor(np.cos(start_theta) * np.ones(photon_N))
 rr = start_r.to(dev_u) * torch.ones(photon_N).to(dev_u)
 rr_cur = rr # rr_cur [current rr for for loop]
 
@@ -72,15 +76,25 @@ if Show_param:
 
 # wave-vector of the photons
 kc0 = torch.sqrt(omega0**2. - pfreq.omega_pe_r(ne_r,rr)**2.)
-k_mu0  = torch.Tensor(np.random.uniform(low=-0.99 ,high=1,size=photon_N)).to(dev_u) # k_z > 0
-k_phi0 = torch.Tensor(np.random.uniform(low=0 ,high= 2*np.pi, size=photon_N)).to(dev_u) # phi in all dir
+if sphere_gen:
+    k_theta = torch.Tensor(np.random.uniform(low=-np.pi/2 + 1e-4 ,
+                            high= np.pi/2 ,size=photon_N)).to(dev_u) # k_z > 0 
+    k_mu0   = torch.cos(k_theta)
+    k_phi0  = torch.Tensor(np.random.uniform(low=0 ,
+                            high= 2*np.pi, size=photon_N)).to(dev_u) # phi in all dir
 
-kxx_k = kc0 * torch.sqrt(1-k_mu0**2.) * torch.cos(k_phi0)
-kyy_k = kc0 * torch.sqrt(1-k_mu0**2.) * torch.sin(k_phi0)
-kzz_k = kc0 * k_mu0
+    kxx_k = kc0 * torch.sqrt(1-k_mu0**2.) * torch.cos(k_phi0)
+    kyy_k = kc0 * torch.sqrt(1-k_mu0**2.) * torch.sin(k_phi0)
+    kzz_k = kc0 * k_mu0
+    k_vec = torch.stack((kxx_k,kyy_k,kzz_k),0).to(dev_u)
+else:
+    # generate in xyz
+    k_vec_tmp = torch.randn(3,photon_N).to(dev_u)
+    k_vec = kc0 * k_vec_tmp/torch.sqrt(torch.sum(k_vec_tmp.pow(2),axis=0))
+
+
 
 r_vec = torch.stack((rxx,ryy,rzz),0).to(dev_u)
-k_vec = torch.stack((kxx_k,kyy_k,kzz_k),0).to(dev_u)
 kc = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 kc_cur = kc
 
@@ -107,7 +121,6 @@ for idx_step in np.arange(steps_N):
     omega = torch.sqrt(pfreq.omega_pe_r(ne_r,rr_cur)**2 + kc_cur**2)
     freq_pe = omega/(2*PI)
 
-
     nu_s = scat.nuScattering(rr_cur,omega,epsilon,ne_r)
     nu_s = nu_s*(nu_s<nu_s0)+nu_s0*(nu_s>=nu_s0) # use the smaller nu_s
 
@@ -131,8 +144,7 @@ for idx_step in np.arange(steps_N):
 
         g0 = torch.sqrt(nu_s*kc**2)
 
-        # position step vec
-        dr_vec = c_r/omega.repeat(3,1) * k_vec
+
 
         # random vec for wave scattering  # [3*N] normal distribution
         W_vec = torch.randn(r_vec.shape).to(dev_u) * torch.sqrt(dt) 
@@ -143,35 +155,37 @@ for idx_step in np.arange(steps_N):
         fi = torch.atan(ry_cur/rx_cur)
         costheta = rz_cur/rr_cur
         sintheta = torch.sqrt(1-costheta**2)
+        if Scat_include:
 
-        # rotate the k vec into the r-z coordinate
-        kcx = - kx_cur*torch.sin(fi) + ky_cur*torch.cos(fi) 
-        kcy = (- kx_cur*costheta*torch.cos(fi) 
-            - ky_cur*costheta*torch.sin(fi) + kz_cur*sintheta) 
-        kcz = (  kx_cur*sintheta*torch.cos(fi) 
-            + ky_cur*sintheta*torch.sin(fi) + kz_cur*costheta)
+            # rotate the k vec into the r-z coordinate
+            kcx = - kx_cur*torch.sin(fi) + ky_cur*torch.cos(fi) 
+            kcy = (- kx_cur*costheta*torch.cos(fi) 
+                - ky_cur*costheta*torch.sin(fi) + kz_cur*sintheta) 
+            kcz = (  kx_cur*sintheta*torch.cos(fi) 
+                + ky_cur*sintheta*torch.sin(fi) + kz_cur*costheta)
 
-        kw     =  Wx*kcx+Wy*kcy+Wz*kcz*anis
-        Akc    = torch.sqrt(kcx*kcx+kcy*kcy+kcz*kcz*anis**2)
-        z_asym = (asym*(kcz > 0.0) + (2.0-asym)*(kcz < 0.))*(kc_cur/Akc)**2
-    
-        A_perp = (nu_s*z_asym* kc_cur /Akc**3 *
-            (-(1+anis**2)*Akc**2+3*anis**2 *(anis**2-1)*kcz**2) *anis)
-        A_par  = (nu_s*z_asym* kc_cur /Akc**3 *
-            ((-3*anis**4+anis**2)*Akc**2+3*anis**4 * (anis**2-1)*kcz**2)*anis)
-        A_g0   = g0*torch.sqrt(z_asym*anis)
-    
-        kcx=kcx + A_perp*kcx*dt + A_g0*(Wx-kcx*kw/Akc**2)
-        kcy=kcy + A_perp*kcy*dt + A_g0*(Wy-kcy*kw/Akc**2)
-        kcz=kcz + A_par *kcz*dt + A_g0*(Wz-kcz*kw*anis/Akc**2)*anis
+            kw     =  Wx*kcx+Wy*kcy+Wz*kcz*anis
+            Akc    = torch.sqrt(kcx*kcx+kcy*kcy+kcz*kcz*anis**2)
+            z_asym = (asym*(kcz > 0.0) + (2.0-asym)*(kcz < 0.))*(kc_cur/Akc)**2
+
+            A_perp = (nu_s*z_asym* kc_cur /Akc**3 *
+                (-(1+anis**2)*Akc**2+3*anis**2 *(anis**2-1)*kcz**2) *anis)
+            A_par  = (nu_s*z_asym* kc_cur /Akc**3 *
+                ((-3*anis**4+anis**2)*Akc**2+3*anis**4 * (anis**2-1)*kcz**2)*anis)
+            A_g0   = g0*torch.sqrt(z_asym*anis)
 
 
-        # rotate back to normal coordinate
-        kx_cur = (-kcx*torch.sin(fi) 
-            -kcy*costheta*torch.cos(fi) +kcz*sintheta*torch.cos(fi) )
-        ky_cur = ( kcx*torch.cos(fi) 
-            -kcy*costheta*torch.sin(fi) +kcz*sintheta*torch.sin(fi) )
-        kz_cur =  kcy*sintheta+kcz*costheta
+            kcx=kcx + A_perp*kcx*dt + A_g0*(Wx-kcx*kw/Akc**2)
+            kcy=kcy + A_perp*kcy*dt + A_g0*(Wy-kcy*kw/Akc**2)
+            kcz=kcz + A_par *kcz*dt + A_g0*(Wz-kcz*kw*anis/Akc**2)*anis
+
+
+            # rotate back to normal coordinate
+            kx_cur = (-kcx*torch.sin(fi) 
+                -kcy*costheta*torch.cos(fi) +kcz*sintheta*torch.cos(fi) )
+            ky_cur = ( kcx*torch.cos(fi) 
+                -kcy*costheta*torch.sin(fi) +kcz*sintheta*torch.sin(fi) )
+            kz_cur =  kcy*sintheta+kcz*costheta
 
 
         r_vec = torch.stack((rx_cur,ry_cur,rz_cur),0)
@@ -181,15 +195,18 @@ for idx_step in np.arange(steps_N):
         kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
         # re-normalize  # to keep |k_vec| stable
-        kc_norm = torch.sqrt(kx_cur**2+ky_cur**2+kz_cur**2)
+        kc_norm = torch.sqrt(kx_cur**2 + ky_cur**2 + kz_cur**2)
         k_vec = k_vec * kc_cur.repeat(3,1)/ kc_norm.repeat(3,1)
 
         # k step forward  # refraction
-        dk_xyz_dt = ((pfreq.omega_pe_r(ne_r,rr_cur)/omega).repeat(3,1) 
-                * domega_pe_dxyz * c_r * r_vec/rr_cur.repeat(3,1)) 
+        #dk_xyz_dt = ((pfreq.omega_pe_r(ne_r,rr_cur)/omega).repeat(3,1)  
+        #        * domega_pe_dxyz * c_r * r_vec/rr_cur.repeat(3,1)) 
+        dk_xyz_dt = ((pfreq.omega_pe_r(ne_r,rr_cur)/omega).repeat(3,1)   
+                    * domega_pe_dxyz) * c_r
         k_vec = k_vec - dk_xyz_dt * dt
 
         # r step forward
+        dr_vec = c_r/omega.repeat(3,1) * k_vec
         r_vec = r_vec + dr_vec * dt
 
         # update abs after vec change        
