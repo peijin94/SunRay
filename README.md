@@ -2,13 +2,15 @@
 
 Note: this is done with:  
     PyTorch==1.5.0  
-    python 3.8.3
+    python>=3.8.3
 
-## check with office computer the version
+The algorithm of anisotropic scattering is reproduced from the code mentioned in [Kontar et. al. ApJ 2019]
 
-### Variables
+The major computational part is done with the help of PyTorch, which is known as an excellent machine learning framework, but also a powerful tool for numerical computation, the computaion can be done with either CPU or GPU. Also the best feature is the **autodiff**, with carried out all the differential works in the computaion.
 
-A list of varibles
+## Variables
+
+### Variable list
 
 | Variable Name | Info |
 |---------------|------|
@@ -16,6 +18,17 @@ A list of varibles
 | ```step_N``` | The number of step, complete simulation case with N>5000 |
 | ```collect_N```| The steps to be collected |
 | ```photon_N```| The number of simulated photons, GPU: 500k, CPU: 30k |
+
+### Important variable size
+
+| Variable Name | ```var.shape```  |
+|---------------|-----------------|
+| ```r_vec```   | ```[3,photon_N]``` |
+| ```k_vec```   | ```[3,photon_N]``` |
+| ```rr_cur```  | ```[photon_N]``` |
+| ```tau```     | ```[photon_N]``` |
+
+
 
 ### Benchmark
 

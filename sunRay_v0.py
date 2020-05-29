@@ -12,12 +12,12 @@ torch.set_num_threads(40)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 # initialize
-steps_N  = 800;       # number of the step
-collect_N = 80;      # number of recorded step
+steps_N  = 30000;       # number of the step
+collect_N = 300;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 3000      # number of photon
+photon_N = 20000      # number of photon
 start_r = 1.75;       # in solar radii
 start_theta = 1/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
@@ -28,8 +28,8 @@ c_r = c/R_S           # [t]
 
 f_ratio  = 1.1        # f/f_pe
 ne_r = dm.parkerfit   # use leblanc for this calculation 
-epsilon = 0.1         # fluctuation scale
-anis = 0.1            # the anisotropic parameter
+epsilon = 0.5         # fluctuation scale
+anis = 0.3            # the anisotropic parameter
 asym = 1.0            # asymetric scale
 
 Te = 86.0             # eV temperature in eV
@@ -147,7 +147,8 @@ for idx_step in np.arange(steps_N):
         # dynamic time step
         dt_ref = torch.min(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
         dt_dr  = torch.min(rr_cur/omega0*kc_cur)/t_param
-        dt = torch.Tensor([np.nanmin([1.0/torch.max(nu_s),dt_ref,dt_dr,dt0])]).to(dev_u)
+        dt_nu = torch.sort(1.0/torch.max(nu_s))[0][int(photon_N*1e-4)]
+        dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0])]).to(dev_u)
         dt = dt/3
 
         g0 = torch.sqrt(nu_s*kc_cur**2)
@@ -226,6 +227,13 @@ for idx_step in np.arange(steps_N):
 
         rr_cur = torch.sqrt(torch.sum(r_vec.pow(2),axis=0))
         kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
+
+        # absorb the large tau photon
+        
+        idx_absorb = torch.nonzero(tau>4.605,as_tuple=False)
+        #r_vec[:,idx_absorb] = 
+        #[TBD]
+
         
     t_current = t_current + dt
     if idx_step in collectPoints:
