@@ -7,17 +7,18 @@ from sunRay import showPlot as SP
 from sunRay.parameters import dev_u # use GPU if available
 import torch
 import time
+from tqdm import tqdm # for processing bar
 
 torch.set_num_threads(40)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 # initialize
-steps_N  = 30000;       # number of the step
+steps_N  = -1;        # number of the step # set as -1 to autoset
 collect_N = 300;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 20000      # number of photon
+photon_N = 100000      # number of photon
 start_r = 1.75;       # in solar radii
 start_theta = 1/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
@@ -49,8 +50,8 @@ sphere_gen = False
 # put variable in device
 start_r = torch.tensor([start_r])  
 PI = torch.acos(torch.Tensor([-1])).to(dev_u) # pi
-nu_e = 2.91e-6*ne_r(start_r)*20./Te**1.5
-
+nu_e0 = 2.91e-6*ne_r(start_r)*20./Te**1.5
+nu_e = nu_e0
 
 
 # frequency of the wave
@@ -120,8 +121,16 @@ t_collect = torch.zeros(collect_N).to(dev_u)
 idx_collect  =  0
 t_current = 0
 
+if steps_N == -1:
+    dt_dr0  = find_small_1e4(rr_cur/omega0*kc_cur)/t_param
+    dt_nu0  = find_small_1e4(1.0/(nu_s0)) 
+    steps_N = (3*4.605/nu_e0 + 30*c_r)*(1/dt_dr0+1/dt_nu0)
+
+# a function to find the 1/1e4 small element in the array
+find_small_1e4 = lambda arr:  torch.sort(arr)[0][int(photon_N*1e-4)]
+
 # the big loop
-for idx_step in np.arange(steps_N):
+for idx_step in tqdm(np.arange(steps_N)):
     
     # dispersion relation reform
     omega = torch.sqrt(pfreq.omega_pe_r(ne_r,rr_cur)**2 + kc_cur**2)
@@ -144,13 +153,14 @@ for idx_step in np.arange(steps_N):
         rx_cur,ry_cur,rz_cur = r_vec[0,:],r_vec[1,:],r_vec[2,:]
         kx_cur,ky_cur,kz_cur = k_vec[0,:],k_vec[1,:],k_vec[2,:]
 
-        # dynamic time step
-        dt_ref = torch.min(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
-        dt_dr  = torch.min(rr_cur/omega0*kc_cur)/t_param
-        dt_nu = torch.sort(1.0/torch.max(nu_s))[0][int(photon_N*1e-4)]
-        dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0])]).to(dev_u)
-        dt = dt/3
 
+        # dynamic time step
+        dt_ref = find_small_1e4(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
+        dt_dr  = find_small_1e4(rr_cur/omega0*kc_cur)/t_param
+        dt_nu  = find_small_1e4(1.0/(nu_s)) 
+        # make sure most of the photons have proper dt 
+        dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0])]).to(dev_u)
+        
         g0 = torch.sqrt(nu_s*kc_cur**2)
 
         # random vec for wave scattering  # [3*N] normal distribution
@@ -228,11 +238,13 @@ for idx_step in np.arange(steps_N):
         rr_cur = torch.sqrt(torch.sum(r_vec.pow(2),axis=0))
         kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
-        # absorb the large tau photon
-        
-        idx_absorb = torch.nonzero(tau>4.605,as_tuple=False)
-        #r_vec[:,idx_absorb] = 
-        #[TBD]
+        # absorb the large tau photon (set as "not a number(nan)")
+        if torch.argmax(tau)>4.605:
+            idx_absorb = torch.nonzero(tau>4.605,as_tuple=False)
+            r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
+            k_vec[:,idx_absorb] = k_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
+            rr_cur[idx_absorb] =  rr_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
+            kc_cur[idx_absorb] =  kc_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
 
         
     t_current = t_current + dt
