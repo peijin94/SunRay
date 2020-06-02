@@ -113,6 +113,11 @@ Exp_size = 1.25*30./(freq0/1e6)
 dt0 = 0.01*Exp_size/c_r
 tau = torch.zeros(rr_cur.shape).to(dev_u)
 
+if steps_N == -1:
+    dt_dr0  = find_small_1e4(rr_cur/omega0*kc_cur)/t_param
+    dt_nu0  = find_small_1e4(1.0/(nu_s0)) 
+    steps_N = (3*4.605/nu_e0 + 30*c_r)*(1/dt_dr0+1/dt_nu0)
+
 # collect the variables of the simulation
 collectPoints = np.round(np.linspace(0,steps_N-1,collect_N))
 r_vec_collect = torch.zeros(collect_N,3,photon_N).to(dev_u)
@@ -121,10 +126,6 @@ t_collect = torch.zeros(collect_N).to(dev_u)
 idx_collect  =  0
 t_current = 0
 
-if steps_N == -1:
-    dt_dr0  = find_small_1e4(rr_cur/omega0*kc_cur)/t_param
-    dt_nu0  = find_small_1e4(1.0/(nu_s0)) 
-    steps_N = (3*4.605/nu_e0 + 30*c_r)*(1/dt_dr0+1/dt_nu0)
 
 # a function to find the 1/1e4 small element in the array
 find_small_1e4 = lambda arr:  torch.sort(arr)[0][int(photon_N*1e-4)]
@@ -239,7 +240,7 @@ for idx_step in tqdm(np.arange(steps_N)):
         kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
         # absorb the large tau photon (set as "not a number(nan)")
-        if torch.argmax(tau)>4.605:
+        if (torch.argmax(tau)>4.605) and (idx_step%100==0) :
             idx_absorb = torch.nonzero(tau>4.605,as_tuple=False)
             r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
             k_vec[:,idx_absorb] = k_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
