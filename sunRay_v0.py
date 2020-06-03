@@ -9,16 +9,16 @@ import torch
 import time
 from tqdm import tqdm # for processing bar
 
-torch.set_num_threads(40)
+torch.set_num_threads(8)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 # initialize
 steps_N  = -1;        # number of the step # set as -1 to autoset
-collect_N = 300;      # number of recorded step
+collect_N = 200;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 100000      # number of photon
+photon_N = 50000      # number of photon
 start_r = 1.75;       # in solar radii
 start_theta = 1/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
@@ -113,10 +113,14 @@ Exp_size = 1.25*30./(freq0/1e6)
 dt0 = 0.01*Exp_size/c_r
 tau = torch.zeros(rr_cur.shape).to(dev_u)
 
+
+# a function to find the 1/1e4 small element in the array
+find_small_1e3 = lambda arr:  torch.sort(arr)[0][int(photon_N*1e-3)]
+
 if steps_N == -1:
-    dt_dr0  = find_small_1e4(rr_cur/omega0*kc_cur)/t_param
-    dt_nu0  = find_small_1e4(1.0/(nu_s0)) 
-    steps_N = (3*4.605/nu_e0 + 30*c_r)*(1/dt_dr0+1/dt_nu0)
+    dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
+    dt_nu0  = find_small_1e3(1.0/(nu_s0)) 
+    steps_N = (2*4.605/nu_e0 + 20*c_r)*(1/dt_dr0+1/dt_nu0)
 
 # collect the variables of the simulation
 collectPoints = np.round(np.linspace(0,steps_N-1,collect_N))
@@ -125,10 +129,6 @@ k_vec_collect = torch.zeros(collect_N,3,photon_N).to(dev_u)
 t_collect = torch.zeros(collect_N).to(dev_u)
 idx_collect  =  0
 t_current = 0
-
-
-# a function to find the 1/1e4 small element in the array
-find_small_1e4 = lambda arr:  torch.sort(arr)[0][int(photon_N*1e-4)]
 
 # the big loop
 for idx_step in tqdm(np.arange(steps_N)):
@@ -156,9 +156,9 @@ for idx_step in tqdm(np.arange(steps_N)):
 
 
         # dynamic time step
-        dt_ref = find_small_1e4(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
-        dt_dr  = find_small_1e4(rr_cur/omega0*kc_cur)/t_param
-        dt_nu  = find_small_1e4(1.0/(nu_s)) 
+        dt_ref = find_small_1e3(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
+        dt_dr  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
+        dt_nu  = find_small_1e3(1.0/(nu_s)) 
         # make sure most of the photons have proper dt 
         dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0])]).to(dev_u)
         
