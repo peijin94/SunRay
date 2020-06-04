@@ -4,12 +4,13 @@ from sunRay import plasmaFreq as pfreq
 from sunRay import densityModel as dm
 from sunRay import scattering as scat 
 from sunRay import showPlot as SP
-from sunRay.parameters import dev_u # use GPU if available
+from sunRay.parameters import c,c_r,R_S  # physics parameters
+from sunRay.parameters import dev_u  # computation device
 import torch
 import time
 from tqdm import tqdm # for processing bar
 
-torch.set_num_threads(8)
+torch.set_num_threads(6)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 # initialize
@@ -22,10 +23,6 @@ photon_N = 50000      # number of photon
 start_r = 1.75;       # in solar radii
 start_theta = 1/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
-
-R_S = 6.96e10         # the radius of the sun 
-c   = 2.998e10        # speed of light
-c_r = c/R_S           # [t]
 
 f_ratio  = 1.1        # f/f_pe
 ne_r = dm.parkerfit   # use leblanc for this calculation 
@@ -107,7 +104,7 @@ kc_cur = kc
 
 # Detach from the previous compute graph
 # before record steps for diff
-domega_pe_dxyz = pfreq.domega_dxyz(ne_r,r_vec.detach())
+domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach())
 
 Exp_size = 1.25*30./(freq0/1e6)
 dt0 = 0.01*Exp_size/c_r
@@ -142,7 +139,7 @@ for idx_step in tqdm(np.arange(steps_N)):
 
     # compare the diff of the CPU and GPU
 
-    domega_pe_dxyz = pfreq.domega_dxyz(ne_r,r_vec.detach())
+    domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach())
     domega_pe_dr = torch.sqrt(torch.sum(domega_pe_dxyz.pow(2),axis=0))
 
     with torch.no_grad(): # no autograd in following calc

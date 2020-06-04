@@ -55,6 +55,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+.vscode/
+
 # Translations
 *.mo
 *.pot
