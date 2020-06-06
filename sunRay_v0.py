@@ -10,7 +10,7 @@ import torch
 import time
 from tqdm import tqdm # for processing bar
 
-torch.set_num_threads(6)
+torch.set_num_threads(4)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 # initialize
@@ -19,7 +19,7 @@ collect_N = 200;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 50000      # number of photon
+photon_N = 500000     # number of photon
 start_r = 1.75;       # in solar radii
 start_theta = 1/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
@@ -38,7 +38,7 @@ Scat_include = True   # whether to consider the
 
 Show_param = True      # Display the parameters
 Show_result_k = False  # Show simulation result k
-Show_result_r = True   # Show simulation result r
+Show_result_r = False   # Show simulation result r
 verb_out = False       # print message
 
 sphere_gen = False
