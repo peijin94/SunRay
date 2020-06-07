@@ -11,6 +11,10 @@ def omega_pe_r(ne_r,r):
     # plasma frequency density relationship
     return 8.93e3* (ne_r(r))**(0.5) * 2 * PI
 
+def omega_pe_r_np(ne_r,r):
+    # plasma frequency density relationship
+    return 8.93e3* (ne_r(r))**(0.5) * 2 * np.pi
+
 @torch.enable_grad()
 def domega_dxyz_1d(ne_r,r_vec):
     # differential of omegape
