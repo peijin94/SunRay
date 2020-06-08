@@ -2,7 +2,7 @@ import numpy as np
 from scipy.ndimage import uniform_filter
 smooth = uniform_filter
 from scipy.optimize import curve_fit
-from numba import jit, prange
+#from numba import jit, prange
 
 
 # finding centroids using the weighted mean method

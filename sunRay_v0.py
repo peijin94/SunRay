@@ -11,20 +11,20 @@ import time
 from tqdm import tqdm # for processing bar
 
 torch.set_num_threads(4)
-torch.set_default_tensor_type(torch.DoubleTensor)
+torch.set_default_tensor_type(torch.FloatTensor)
 
 # initialize
 steps_N  = -1;        # number of the step # set as -1 to autoset
-collect_N = 200;      # number of recorded step
+collect_N = 180;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 500000     # number of photon
+photon_N = 1000000     # number of photon
 start_r = 1.75;       # in solar radii
-start_theta = 1/180.0*np.pi;    # in rad
+start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
 
-f_ratio  = 1.1        # f/f_pe
+f_ratio  = 1.05       # f/f_pe
 ne_r = dm.parkerfit   # use leblanc for this calculation 
 epsilon = 0.5         # fluctuation scale
 anis = 0.3            # the anisotropic parameter
@@ -120,10 +120,11 @@ if steps_N == -1:
     steps_N = (2*4.605/nu_e0 + 20*c_r)*(1/dt_dr0+1/dt_nu0)
 
 # collect the variables of the simulation
+# collect to CPU (GPU mem is expensive)
 collectPoints = np.round(np.linspace(0,steps_N-1,collect_N))
-r_vec_collect = torch.zeros(collect_N,3,photon_N).to(dev_u)
-k_vec_collect = torch.zeros(collect_N,3,photon_N).to(dev_u)
-t_collect = torch.zeros(collect_N).to(dev_u)
+r_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))
+k_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))
+t_collect = torch.zeros(collect_N).to(torch.device('cpu'))
 idx_collect  =  0
 t_current = 0
 
@@ -248,8 +249,8 @@ for idx_step in tqdm(np.arange(steps_N)):
     t_current = t_current + dt
     if idx_step in collectPoints:
         t_collect[idx_collect] = t_current
-        r_vec_collect[idx_collect,:,:] = r_vec
-        k_vec_collect[idx_collect,:,:] = k_vec
+        r_vec_collect[idx_collect,:,:] = r_vec.cpu()
+        k_vec_collect[idx_collect,:,:] = k_vec.cpu()
         idx_collect = idx_collect +1
         if verb_out: # print out the process
             print('F_pe:'+'{:.3f}'.format(np.mean(
