@@ -60,7 +60,7 @@ def XYDistributionImageHist(x_data,y_data,weights_data=1,
     # definitions for the axes
     left, width = 0.1, 0.65
     bottom, height = 0.1, 0.65
-    spacing = 0.005
+    spacing = 0.004
 
 
     rect_scatter = [left, bottom, width, height]
@@ -68,7 +68,7 @@ def XYDistributionImageHist(x_data,y_data,weights_data=1,
     rect_histy = [left + width + spacing, bottom, 0.2, height]
 
     # start with a rectangular Figure
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(5, 5))
 
     ax_main = plt.axes(rect_scatter)
     ax_main.tick_params(direction='in', top=True, right=True)
@@ -80,12 +80,27 @@ def XYDistributionImageHist(x_data,y_data,weights_data=1,
     # the scatter plot:
     img_2d,xx,yy = np.histogram2d(x_data,y_data,weights=weights_data,bins=bins_data)
 
+    print(np.max(img_2d))
+
     masked_data  = np.ma.masked_where(img_2d.T<1e-2,img_2d.T)
 
     ax_main.imshow(masked_data,origin='low',interpolation='nearest',
         extent=[xx[0], xx[-1], yy[0], yy[-1]],cmap='magma_r')
     ax_main.set_xlabel('X [Solar Radius]')
     ax_main.set_ylabel('Y [Solar Radius]')
+
+    
+    xc = (np.mean(x*weights_data) / 
+                    np.mean(weights_data))
+    yc = (np.mean(y*weights_data) / 
+                    np.mean(weights_data))
+    
+    sx=np.sqrt(np.mean(weights_data*(x-xc)**2)/
+                np.mean(weights_data))*2.355
+    sy=np.sqrt(np.mean(weights_data*(y-yc)**2)/
+                np.mean(weights_data))*2.355
+
+    ax_main.plot(xc+sx*np.cos(np.linspace(0,2*np.pi)),yc+sy*np.sin(np.linspace(0,2*np.pi)),color='C9')
 
     ax_main.plot(np.sin(np.linspace(0,2*np.pi)),np.cos(np.linspace(0,2*np.pi)),'k-')
 
@@ -94,9 +109,21 @@ def XYDistributionImageHist(x_data,y_data,weights_data=1,
     ax_main.set_ylim([np.min(yy),np.max(yy)])
 
     ax_histx.hist(x, bins=bins_data,weights=weights_data,histtype='stepfilled'
-                , alpha=0.3, density=True,edgecolor='r',color='r')
+                , alpha=0.5, density=True,edgecolor='r',color='r',linewidth=1.5)
     ax_histy.hist(y, bins=bins_data,weights=weights_data,orientation='horizontal'
-                , alpha=0.3, density=True,histtype='stepfilled',edgecolor='b',color='b')
+                , alpha=0.5, density=True,histtype='stepfilled',edgecolor='b',color='b',linewidth=1.5)
+
+    ax_histx.text(0.04, 0.8,'X', fontsize=18,
+        horizontalalignment='center',
+        verticalalignment='center',
+        transform = ax_histx.transAxes)
+
+
+    ax_histy.text(0.86, 0.94,'Y', fontsize=18,
+        horizontalalignment='center',
+        verticalalignment='center',
+        transform = ax_histy.transAxes)
+
 
     ax_histx.set_xlim(ax_main.get_xlim())
 #    ax_histx.set_ylim([0,2])
@@ -112,3 +139,14 @@ def XYDistributionImageHist(x_data,y_data,weights_data=1,
     plt.show()
 
 
+def XYVariation(x_data,y_data,t_data,weights_data=1,
+                            x_lim=[-2.5,2.5],y_lim=[-2.5,2.5],
+                            bins_data = np.linspace(-2.5,2.5,120),
+                            plot_sun =True):
+
+    plt.figure(figsize=(9, 5))
+    ax_main = plt.axes([0.1,0.1,0.8,0.2])
+    hst = np.histogram(t_data,150,weights=weights_data)
+    
+
+    pass
