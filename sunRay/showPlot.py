@@ -49,4 +49,66 @@ def showResultR(r_vec_cur):
     axs[2].set_aspect('equal')
     #axs[4].plot()
 
+def XYDistributionImageHist(x_data,y_data,weights_data=1,
+                            x_lim=[-2.5,2.5],y_lim=[-2.5,2.5],
+                            bins_data = np.linspace(-2.5,2.5,120),
+                            plot_sun =True):
+
+    x = x_data
+    y = y_data
+
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+    spacing = 0.005
+
+
+    rect_scatter = [left, bottom, width, height]
+    rect_histx = [left, bottom + height + spacing, width, 0.2]
+    rect_histy = [left + width + spacing, bottom, 0.2, height]
+
+    # start with a rectangular Figure
+    plt.figure(figsize=(6, 6))
+
+    ax_main = plt.axes(rect_scatter)
+    ax_main.tick_params(direction='in', top=True, right=True)
+    ax_histx = plt.axes(rect_histx)
+    ax_histx.tick_params(direction='in', labelbottom=False)
+    ax_histy = plt.axes(rect_histy)
+    ax_histy.tick_params(direction='in', labelleft=False)
+
+    # the scatter plot:
+    img_2d,xx,yy = np.histogram2d(x_data,y_data,weights=weights_data,bins=bins_data)
+
+    masked_data  = np.ma.masked_where(img_2d.T<1e-2,img_2d.T)
+
+    ax_main.imshow(masked_data,origin='low',interpolation='nearest',
+        extent=[xx[0], xx[-1], yy[0], yy[-1]],cmap='magma_r')
+    ax_main.set_xlabel('X [Solar Radius]')
+    ax_main.set_ylabel('Y [Solar Radius]')
+
+    ax_main.plot(np.sin(np.linspace(0,2*np.pi)),np.cos(np.linspace(0,2*np.pi)),'k-')
+
+    # now determine nice limits by hand:
+    ax_main.set_xlim([np.min(xx),np.max(xx)])
+    ax_main.set_ylim([np.min(yy),np.max(yy)])
+
+    ax_histx.hist(x, bins=bins_data,weights=weights_data,histtype='stepfilled'
+                , alpha=0.3, density=True,edgecolor='r',color='r')
+    ax_histy.hist(y, bins=bins_data,weights=weights_data,orientation='horizontal'
+                , alpha=0.3, density=True,histtype='stepfilled',edgecolor='b',color='b')
+
+    ax_histx.set_xlim(ax_main.get_xlim())
+#    ax_histx.set_ylim([0,2])
+    ax_histy.set_ylim(ax_main.get_ylim())
+#    ax_histy.set_xlim([0,2])
+
+    ax_histx.set_yticks([])
+    ax_histy.set_xticks([]) 
+
+    ax_histx.set_ylabel('Normalized')
+    ax_histy.set_xlabel('Normalized')
+
+    plt.show()
+
 

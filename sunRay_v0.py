@@ -11,7 +11,7 @@ import time
 from tqdm import tqdm # for processing bar
 
 torch.set_num_threads(4)
-torch.set_default_tensor_type(torch.FloatTensor)
+torch.set_default_tensor_type(torch.FloatTensor) # float is enough
 
 # initialize
 steps_N  = -1;        # number of the step # set as -1 to autoset
