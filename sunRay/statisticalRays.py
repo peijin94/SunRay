@@ -7,9 +7,12 @@
 import numpy as np 
 import torch
 from sunRay.parameters import c_r
+from sunRay import plasmaFreq as pfreq
+from sunRay import densityModel as dm
+from scipy import integrate
 
 
-def collectXYt1AU(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau):
+def collectXYt1AU(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau,omega0):
 
     find_small_1e3 = lambda arr:  np.sort(arr)[int(photon_N*1e-3)]
 
@@ -80,7 +83,10 @@ def collectXYt1AU(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau
 
     weights_stat = np.exp(-tau_stat)
 
-    return (x_im_stat,y_im_stat,t_reach_stat,weights_stat)
+    t_delay = integrate.quad(lambda x: (1/(c_r*np.sqrt(1.0-pfreq.omega_pe_r_np(dm.leblanc98,x)/omega0)) ) ,r_get,215 )[0]
+    t_reach_1au_stat = t_reach_stat + t_delay
+
+    return (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat)
 
 
 def centroidXYFWHM(x,y,weights_data=1):
@@ -161,3 +167,16 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05):
         sx_all,sy_all,err_xc_all,err_yc_all,err_sx_all,err_sy_all)
 
 
+def lin_interp(x, y, i, half):
+    return x[i] + (x[i+1] - x[i]) * ((half - y[i]) / (y[i+1] - y[i]))
+
+def FWHM(x, y):
+    """
+    Determine the FWHM position [x] of a distribution [y]
+    """
+    half = max(y)/2.0
+    signs = np.sign(np.add(y, -half))
+    zero_crossings = (signs[0:-2] != signs[1:-1])
+    zero_crossings_i = np.where(zero_crossings)[0]
+    return [lin_interp(x, y, zero_crossings_i[0], half),
+            lin_interp(x, y, zero_crossings_i[1], half)]

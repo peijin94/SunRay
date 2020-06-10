@@ -132,6 +132,8 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05):
         err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_data,y_data,t_data,weights_data,t_step)
 
 
+    FWHM_range = raystat.FWHM(t_bin_center,flux_all)
+
     plt.figure(figsize=(4.5, 6))
     ax_t = plt.axes([0.1,0.65,0.8,0.3])
     ax_t.step(t_bin_center,flux_all/np.max(flux_all),where='mid',color='k')
@@ -139,6 +141,7 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05):
     ax_t.tick_params(direction='in', labelbottom=False)
     ax_t.set_ylim([0,1.1])
     ax_t.set_yticks([0.2, 0.4, 0.6, 0.8, 1])
+
 
     ax_XY = plt.axes([0.1,0.35,0.8,0.3])
 
@@ -149,6 +152,7 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05):
 
     ax_FWHM = plt.axes([0.1,0.05,0.8,0.3])
 
+
     ax_FWHM.errorbar(t_bin_center,sx_all,err_sx_all,color='r',drawstyle='steps-mid',capsize=1,elinewidth=0.2)
     ax_FWHM.errorbar(t_bin_center,sy_all,err_sy_all,color='b',drawstyle='steps-mid',capsize=1,elinewidth=0.2)
     ax_FWHM.tick_params(direction='in')
@@ -156,6 +160,11 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05):
     ax_FWHM.set_ylabel("X,Y FWHM [R_s]")
 
     ax_t.legend((l1,l2),("X","Y"))
+
+    ax_t.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')
+    ax_FWHM.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')
+    ax_XY.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')
+    
 
 
 
