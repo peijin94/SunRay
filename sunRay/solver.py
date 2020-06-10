@@ -1,4 +1,4 @@
-import numpy as np 
+#import numpy as np 
 
 def rk4_step(f, t0, y0, h):
     k1 = h * f(t0, y0)
@@ -10,7 +10,7 @@ def rk4_step(f, t0, y0, h):
 def rk4(f, t0, y0, t1, n):
     vt = [0] * (n + 1)
     vy = [0] * (n + 1)
-    h = (t1 - t0) / float(n)
+    h = (t1 - t0) / (n*1.0)
     vt[0] = t = t0
     vy[0] = y = y0
     for i in range(1, n + 1):

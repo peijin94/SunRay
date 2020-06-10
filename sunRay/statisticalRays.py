@@ -83,3 +83,81 @@ def collectXYt1AU(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau
     return (x_im_stat,y_im_stat,t_reach_stat,weights_stat)
 
 
+def centroidXYFWHM(x,y,weights_data=1):
+    """
+        calculate the weighted centroid and FWHM from scattered points
+        x: X position
+        y: Y position
+        weights_data: default is 1 for all points
+    """
+    xc = (np.mean(x*weights_data) / 
+                    np.mean(weights_data))
+    yc = (np.mean(y*weights_data) / 
+                    np.mean(weights_data))
+    
+    sx=np.sqrt(np.mean(weights_data*(x-xc)**2)/
+                np.mean(weights_data))*2.355
+    sy=np.sqrt(np.mean(weights_data*(y-yc)**2)/
+                np.mean(weights_data))*2.355
+
+    err_xc = sx/(np.sqrt(np.prod(x.shape))+1e-8)/2.355
+    err_yc = sy/(np.sqrt(np.prod(y.shape))+1e-8)/2.355
+
+    err_sx = sx*np.sqrt(2)/(np.sqrt(np.prod(x.shape))+1e-8)
+    err_sy = sy*np.sqrt(2)/(np.sqrt(np.prod(y.shape))+1e-8)
+    
+    return (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy)
+
+def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05):
+    """
+        The variation of the XY positions with a [t_step] cadence
+    """
+
+    x_im_stat = x_data
+    y_im_stat = y_data
+    
+    t_reach_1au_stat = t_data
+    weights_stat = weights_data
+
+    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]
+    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.05))]
+
+    num_t_bins = int((upper_t_lim-lower_t_lim)/0.05)
+    t_bins = np.linspace(lower_t_lim,upper_t_lim,num_t_bins)
+
+    t_bin_center = (t_bins[0:-1]+t_bins[1:])/2
+
+
+    flux_all = np.zeros(t_bin_center.shape)
+    xc_all = np.zeros(t_bin_center.shape)
+    yc_all = np.zeros(t_bin_center.shape)
+    sx_all = np.zeros(t_bin_center.shape)
+    sy_all = np.zeros(t_bin_center.shape)
+    err_xc_all = np.zeros(t_bin_center.shape)
+    err_yc_all = np.zeros(t_bin_center.shape)
+    err_sx_all = np.zeros(t_bin_center.shape)
+    err_sy_all = np.zeros(t_bin_center.shape)
+
+    idx_cur = 0
+    for idx_t_bin in np.arange(len(t_bin_center)):
+
+        idx_in_t_range = np.where((t_reach_1au_stat>t_bins[idx_t_bin]) 
+                                & (t_reach_1au_stat<t_bins[idx_t_bin+1]))
+        
+        x_im_in_t_range = x_im_stat[idx_in_t_range]
+        y_im_in_t_range = y_im_stat[idx_in_t_range]
+        weights_in_t_range = weights_stat[idx_in_t_range]
+
+        # collect the variation of xc yc sx sy
+        ( xc_all[idx_cur],yc_all[idx_cur],sx_all[idx_cur],sy_all[idx_cur],
+            err_xc_all[idx_cur],err_yc_all[idx_cur],
+            err_sx_all[idx_cur],err_sy_all[idx_cur]
+            ) = centroidXYFWHM(x_im_in_t_range,y_im_in_t_range,weights_in_t_range)
+        flux_all[idx_cur] = np.sum(weights_in_t_range*np.ones(x_im_in_t_range.shape))
+        
+        idx_cur = idx_cur + 1
+
+    return (t_bin_center,flux_all,xc_all,yc_all,
+        sx_all,sy_all,err_xc_all,err_yc_all,err_sx_all,err_sy_all)
+
+
