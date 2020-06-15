@@ -131,7 +131,7 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05):
     (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
         err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_data,y_data,t_data,weights_data,t_step)
 
-
+    (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(x_data,y_data,weights_data)
     FWHM_range = raystat.FWHM(t_bin_center,flux_all)
 
     plt.figure(figsize=(4.5, 6))
@@ -141,31 +141,27 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05):
     ax_t.tick_params(direction='in', labelbottom=False)
     ax_t.set_ylim([0,1.1])
     ax_t.set_yticks([0.2, 0.4, 0.6, 0.8, 1])
-
-
     ax_XY = plt.axes([0.1,0.35,0.8,0.3])
 
     l1=ax_XY.errorbar(t_bin_center,xc_all,err_xc_all,color='r',drawstyle='steps-mid',capsize=1,elinewidth=0.2)
     l2=ax_XY.errorbar(t_bin_center,yc_all,err_yc_all,color='b',drawstyle='steps-mid',capsize=1,elinewidth=0.2)
     ax_XY.tick_params(direction='in', labelbottom=False)
     ax_XY.set_ylabel("X,Y Position [R_s]")
-
+    ax_XY.plot([t_bin_center[0],t_bin_center[-1]],[xc,xc],'r--',linewidth=0.6)
+    ax_XY.plot([t_bin_center[0],t_bin_center[-1]],[yc,yc],'b--',linewidth=0.6)
     ax_FWHM = plt.axes([0.1,0.05,0.8,0.3])
-
 
     ax_FWHM.errorbar(t_bin_center,sx_all,err_sx_all,color='r',drawstyle='steps-mid',capsize=1,elinewidth=0.2)
     ax_FWHM.errorbar(t_bin_center,sy_all,err_sy_all,color='b',drawstyle='steps-mid',capsize=1,elinewidth=0.2)
     ax_FWHM.tick_params(direction='in')
+    ax_FWHM.plot([t_bin_center[0],t_bin_center[-1]],[sx,sx],'r--',linewidth=0.6)
+    ax_FWHM.plot([t_bin_center[0],t_bin_center[-1]],[sy,sy],'b--',linewidth=0.6)
     ax_FWHM.set_xlabel('Time [s]')
     ax_FWHM.set_ylabel("X,Y FWHM [R_s]")
-
     ax_t.legend((l1,l2),("X","Y"))
 
     ax_t.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')
     ax_FWHM.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')
     ax_XY.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')
     
-
-
-
     plt.show()

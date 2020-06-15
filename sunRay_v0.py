@@ -10,7 +10,7 @@ import torch
 import time
 from tqdm import tqdm # for processing bar
 
-torch.set_num_threads(4)
+torch.set_num_threads(2)
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough
 
 # initialize
@@ -19,7 +19,8 @@ collect_N = 180;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
-photon_N = 1000000     # number of photon
+#photon_N = 1000000     # number of photon
+photon_N = 20000
 start_r = 1.75;       # in solar radii
 start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
@@ -117,7 +118,7 @@ find_small_1e3 = lambda arr:  torch.sort(arr)[0][int(photon_N*1e-3)]
 if steps_N == -1:
     dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
     dt_nu0  = find_small_1e3(1.0/(nu_s0)) 
-    steps_N = (2*4.605/nu_e0 + 20*c_r)*(1/dt_dr0+1/dt_nu0)
+    steps_N = (4.605/nu_e0 + 10*c_r)*(1/dt_dr0+1/dt_nu0)
 
 # collect the variables of the simulation
 # collect to CPU (GPU mem is expensive)
