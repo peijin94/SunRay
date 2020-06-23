@@ -1,4 +1,7 @@
 import numpy as np
+
+#TODO: time collecting method
+
 #import matplotlib.pyplot as plt
 from sunRay import plasmaFreq as pfreq
 from sunRay import densityModel as dm
@@ -26,7 +29,7 @@ start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
 
 f_ratio  = 1.05       # f/f_pe
-ne_r = dm.parkerfit   # use leblanc for this calculation 
+ne_r = dm.parkerfit   # density model used for this calculation 
 epsilon = 0.5         # fluctuation scale
 anis = 0.3            # the anisotropic parameter
 asym = 1.0            # asymetric scale
