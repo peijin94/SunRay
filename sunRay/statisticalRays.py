@@ -103,7 +103,7 @@ def collectXYt1AUb(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,ta
     rr_start = np.sqrt(np.sum(r_vec_start**2,axis=0))   
 
     # most of the photons passed this range
-    r_get = find_small_1e3(rr_end)
+    r_get = 15# find_small_1e3(rr_end)
     kx_end,ky_end,kz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
 
     idx_for_stat = np.where( (rr_end>(r_get-0.1)) & 

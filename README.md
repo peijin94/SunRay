@@ -21,14 +21,18 @@ Note: this is done with:
 | ```collect_N```| The steps to be collected (for debug and dev)|
 | ```photon_N```| The number of simulated photons, <br> (recommend: GPU: 500000, CPU: 10000) |
 
+when ```photon_N``` is smaller than 10000, CPU is faster than GPU due to the memory exchange
+
 ### Important variable size
 
 | Variable Name | ```var.shape```  |
 |---------------|-----------------|
 | ```r_vec```   | ```[3,photon_N]``` |
 | ```k_vec```   | ```[3,photon_N]``` |
+| ```r_vec_collect```   | ```[t_N,3,photon_N]``` |
 | ```rr_cur```  | ```[photon_N]``` |
 | ```tau```     | ```[photon_N]``` |
+
 
 
 

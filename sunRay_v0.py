@@ -13,17 +13,17 @@ import torch
 import time
 from tqdm import tqdm # for processing bar
 
-torch.set_num_threads(2)
+torch.set_num_threads(20)
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough
 
 # initialize
-steps_N  = -1;        # number of the step # set as -1 to autoset
+steps_N  = 20000;        # number of the step # set as -1 to autoset
 collect_N = 180;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
 #photon_N = 1000000     # number of photon
-photon_N = 20000
+photon_N = 10000
 start_r = 1.75;       # in solar radii
 start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
