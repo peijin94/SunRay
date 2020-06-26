@@ -89,7 +89,7 @@ def collectXYt1AU(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau
     return (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat)
 
 
-def collectXYt1AUb(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau,omega0):
+def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau,omega0,Rcollect):
     
     find_small_1e3 = lambda arr:  np.sort(arr)[int(photon_N*1e-3)]
 
@@ -103,25 +103,23 @@ def collectXYt1AUb(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,ta
     rr_start = np.sqrt(np.sum(r_vec_start**2,axis=0))   
 
     # most of the photons passed this range
-    r_get = 14.96# find_small_1e3(rr_end)
+    r_get = 14.96
     kx_end,ky_end,kz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
     rx_end,ry_end,rz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
 
-    idx_for_stat = np.where( (rr_end>(r_get-0.1)) & 
-                         (kz_end/kk_end>0.9) & 
-                         (kz_end/kk_end<1.0) &
-                         (rz_end/rr_end>0.9))
+    idx_available = np.where(rr_end>(r_get-0.1))
 
+    x_im_stat_avail = np.zeros(idx_available[0].shape)
+    y_im_stat_avail = np.zeros(idx_available[0].shape)
+    t_reach_stat_avail = np.zeros(idx_available[0].shape)
+    tau_stat_avail = np.zeros(idx_available[0].shape)
+    t_free_stat_avail = np.zeros(idx_available[0].shape)
 
-    x_im_stat = np.zeros(idx_for_stat[0].shape)
-    y_im_stat = np.zeros(idx_for_stat[0].shape)
-    t_reach_stat = np.zeros(idx_for_stat[0].shape)
-    tau_stat = np.zeros(idx_for_stat[0].shape)
-    t_free_stat = np.zeros(idx_for_stat[0].shape)
-
-
+    kk_stat_avail = np.zeros(idx_available[0].shape)
+    kz_stat_avail = np.zeros(idx_available[0].shape)
+    
     idx_tmp = 0
-    for idx_cur in idx_for_stat[0]:
+    for idx_cur in idx_available[0]:
         # for all rays do the collect:
         r_vec_tmp = r_vec_collect_local[:,:,idx_cur]
         rr_tmp = np.sqrt(np.sum(r_vec_tmp**2,axis=1))
@@ -156,16 +154,39 @@ def collectXYt1AUb(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,ta
         # use t*c as free path integral
         r_free_tmp_b = t_reach_tmp*c_r
 
-        t_reach_stat[idx_tmp] = t_reach_tmp-r_free_tmp_a/c_r
-        t_free_stat[idx_tmp] = r_free_tmp_a/c_r
+        t_reach_stat_avail[idx_tmp] = t_reach_tmp-r_free_tmp_a/c_r
+        t_free_stat_avail[idx_tmp] = r_free_tmp_a/c_r
 
-        x_im_stat[idx_tmp] = r_vec_reach_tmp[0] - r_free_tmp_a*kx_tmp/kk_tmp
-        y_im_stat[idx_tmp] = r_vec_reach_tmp[1] - r_free_tmp_a*ky_tmp/kk_tmp
+        x_im_stat_avail[idx_tmp] = r_vec_reach_tmp[0] - r_free_tmp_a*kx_tmp/kk_tmp
+        y_im_stat_avail[idx_tmp] = r_vec_reach_tmp[1] - r_free_tmp_a*ky_tmp/kk_tmp
 
+        tau_stat_avail[idx_tmp] = tau[idx_cur]
+
+        kk_stat_avail[idx_tmp] = kk_tmp
+        kz_stat_avail[idx_tmp] = kz_tmp
+
+        idx_tmp = idx_tmp+1  
+
+    idx_for_stat = np.where((kz_stat_avail/kk_stat_avail<1.00) & 
+                            (kz_stat_avail/kk_stat_avail>0.90))
+
+
+    x_im_stat = np.zeros(idx_for_stat[0].shape)
+    y_im_stat = np.zeros(idx_for_stat[0].shape)
+    t_reach_stat = np.zeros(idx_for_stat[0].shape)
+    tau_stat = np.zeros(idx_for_stat[0].shape)
+    t_free_stat = np.zeros(idx_for_stat[0].shape)
+
+    idx_tmp = 0
+    for idx_cur in idx_for_stat[0]:
         
-        tau_stat[idx_tmp] = tau[idx_cur]
+        x_im_stat[idx_tmp] = x_im_stat_avail[idx_cur]
+        y_im_stat[idx_tmp] = y_im_stat_avail[idx_cur]
+        t_reach_stat[idx_tmp] = t_reach_stat_avail[idx_cur]
+        tau_stat[idx_tmp] = tau_stat_avail[idx_cur]
+        t_free_stat[idx_tmp] = t_free_stat_avail[idx_cur]
 
-        idx_tmp = idx_tmp+1    
+        idx_tmp = idx_tmp+1  
 
     weights_stat = np.exp(-tau_stat)
 
