@@ -103,12 +103,14 @@ def collectXYt1AUb(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,ta
     rr_start = np.sqrt(np.sum(r_vec_start**2,axis=0))   
 
     # most of the photons passed this range
-    r_get = 15# find_small_1e3(rr_end)
+    r_get = 14.96# find_small_1e3(rr_end)
     kx_end,ky_end,kz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
+    rx_end,ry_end,rz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
 
     idx_for_stat = np.where( (rr_end>(r_get-0.1)) & 
                          (kz_end/kk_end>0.9) & 
-                         (kz_end/kk_end<1.0) )
+                         (kz_end/kk_end<1.0) &
+                         (rz_end/rr_end>0.9))
 
 
     x_im_stat = np.zeros(idx_for_stat[0].shape)
@@ -176,15 +178,15 @@ def collectXYt1AUb(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,ta
                  14,200 )[0] -((200-14)/c_r)
 
 
-    print(t_delay)
-    print(t_delay_test)
-    print(np.mean(t_free_stat))
-    print(r_get)
-    print(np.mean(t_reach_stat))
+    #print(t_delay)
+    #print(t_delay_test)
+    #print(np.mean(t_free_stat))
+    #print(r_get+1)
+    #print(np.mean(t_reach_stat))
 
     t_reach_1au_stat = t_reach_stat
 
-    return (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat)
+    return (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat)
 
 
 
@@ -225,8 +227,8 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05):
     t_reach_1au_stat = t_data
     weights_stat = weights_data
 
-    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]
-    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.05))]
+    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-1
+    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.25))]
 
     num_t_bins = int((upper_t_lim-lower_t_lim)/t_step)
     t_bins = np.linspace(lower_t_lim,upper_t_lim,num_t_bins)
@@ -253,6 +255,7 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05):
         x_im_in_t_range = x_im_stat[idx_in_t_range]
         y_im_in_t_range = y_im_stat[idx_in_t_range]
         weights_in_t_range = weights_stat[idx_in_t_range]
+        #print(weights_in_t_range)
 
         # collect the variation of xc yc sx sy
         ( xc_all[idx_cur],yc_all[idx_cur],sx_all[idx_cur],sy_all[idx_cur],
@@ -260,6 +263,7 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05):
             err_sx_all[idx_cur],err_sy_all[idx_cur]
             ) = centroidXYFWHM(x_im_in_t_range,y_im_in_t_range,weights_in_t_range)
         flux_all[idx_cur] = np.sum(weights_in_t_range*np.ones(x_im_in_t_range.shape))
+        #flux_all[idx_cur] = np.sum(1.0*np.ones(x_im_in_t_range.shape))
         
         idx_cur = idx_cur + 1
 

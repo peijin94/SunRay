@@ -13,25 +13,25 @@ import torch
 import time
 from tqdm import tqdm # for processing bar
 
-torch.set_num_threads(20)
+torch.set_num_threads(4)
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough
 
 # initialize
-steps_N  = 20000;        # number of the step # set as -1 to autoset
+steps_N  = -1# 2000;        # number of the step # set as -1 to autoset
 collect_N = 180;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
 #photon_N = 1000000     # number of photon
-photon_N = 10000
+photon_N = 12000
 start_r = 1.75;       # in solar radii
 start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
 
-f_ratio  = 1.05       # f/f_pe
+f_ratio  = 1.1        # f/f_pe
 ne_r = dm.parkerfit   # density model used for this calculation 
-epsilon = 0.5         # fluctuation scale
-anis = 0.3            # the anisotropic parameter
+epsilon = 0.6         # fluctuation scale
+anis = 0.4            # the anisotropic parameter
 asym = 1.0            # asymetric scale
 
 Te = 86.0             # eV temperature in eV
@@ -121,7 +121,15 @@ find_small_1e3 = lambda arr:  torch.sort(arr)[0][int(photon_N*1e-3)]
 if steps_N == -1:
     dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
     dt_nu0  = find_small_1e3(1.0/(nu_s0)) 
-    steps_N = (4.605/nu_e0 + 10*c_r)*(1/dt_dr0+1/dt_nu0)
+    dt_nue0  = 1/nu_e0
+    steps_N = (3*4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 20/c_r)*(1/dt_dr0+1/dt_nu0+1/dt_nue0)
+    print(1/dt_dr0)
+    print(1/dt_nu0)
+    print(1/dt_nue0)
+    print(2*4.605/nu_e0/(1.-1./f_ratio**2)**0.5)
+    print(25/c_r)
+
+
 
 # collect the variables of the simulation
 # collect to CPU (GPU mem is expensive)
@@ -241,7 +249,7 @@ for idx_step in tqdm(np.arange(steps_N)):
         rr_cur = torch.sqrt(torch.sum(r_vec.pow(2),axis=0))
         kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
-        # absorb the large tau photon (set as "not a number(nan)")
+        # absorb the large tau photon (set as NaN)
         if (torch.argmax(tau)>4.605) and (idx_step%100==0) :
             idx_absorb = torch.nonzero(tau>4.605,as_tuple=False)
             r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
