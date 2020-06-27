@@ -23,7 +23,7 @@ t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
 #photon_N = 1000000     # number of photon
-photon_N = 12000
+photon_N = 5000
 start_r = 1.75;       # in solar radii
 start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
@@ -122,7 +122,7 @@ if steps_N == -1:
     dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
     dt_nu0  = find_small_1e3(1.0/(nu_s0)) 
     dt_nue0  = 1/nu_e0
-    steps_N = (3*4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 20/c_r)*(1/dt_dr0+1/dt_nu0+1/dt_nue0)
+    steps_N = (4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 10/c_r)*(1/dt_dr0+1/dt_nu0+1/dt_nue0)
     print(1/dt_dr0)
     print(1/dt_nu0)
     print(1/dt_nue0)
@@ -142,8 +142,9 @@ idx_collect  =  0
 t_current = 0
 
 # the big loop
-for idx_step in tqdm(np.arange(steps_N)):
-    
+#for idx_step in tqdm(np.arange(steps_N)): #show process bar
+for idx_step in (np.arange(steps_N)):
+        
     # dispersion relation reform
     omega = torch.sqrt(pfreq.omega_pe_r(ne_r,rr_cur)**2 + kc_cur**2)
     freq_pe = omega/(2*PI)
@@ -242,9 +243,11 @@ for idx_step in tqdm(np.arange(steps_N)):
             /torch.sqrt(torch.sum(k_vec.pow(2),axis=0)))
         k_vec = k_vec * kc_refresh.repeat(3,1)
 
-        nu_e = (2.91e-6*ne_r(rr_cur)*20./Te**1.5
+        nu_e = (2.91e-6 * ne_r(rr_cur) * 20. / Te**1.5
             *pfreq.omega_pe_r(ne_r, rr_cur)**2/omega**2)
 
+        print(dt)
+        
         tau = tau + nu_e*dt
 
         rr_cur = torch.sqrt(torch.sum(r_vec.pow(2),axis=0))
@@ -254,8 +257,12 @@ for idx_step in tqdm(np.arange(steps_N)):
         # 9.210 -> I=1e-4
         # 6.908 -> I=1e-3
         # 4.605 -> I=1e-2
-        if (tau[torch.argmax(tau)]>9.210) and (idx_step%100==0) :
+        # remove every 128 steps
+        if (idx_step%128==0) :
             idx_absorb = torch.nonzero(tau>9.210,as_tuple=False)
+            if idx_absorb.shape[0]>0:
+                pass
+                #print('removing : '+str(idx_absorb.shape[0]))
             r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
             k_vec[:,idx_absorb] = k_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
             rr_cur[idx_absorb] =  rr_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
@@ -267,7 +274,7 @@ for idx_step in tqdm(np.arange(steps_N)):
         t_collect[idx_collect] = t_current
         r_vec_collect[idx_collect,:,:] = r_vec.cpu()
         k_vec_collect[idx_collect,:,:] = k_vec.cpu()
-        tau_collect[idx_collect,:] = k_vec.cpu()
+        tau_collect[idx_collect,:] = tau.cpu()
         idx_collect = idx_collect +1
         if verb_out: # print out the process
             print('F_pe:'+'{:.3f}'.format(np.mean(

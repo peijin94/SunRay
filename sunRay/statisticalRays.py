@@ -89,7 +89,8 @@ def collectXYt1AU(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau
     return (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat)
 
 
-def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau,omega0,Rcollect):
+def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,
+            t_collect,tau_collect,omega0,Rcollect):
     
     find_small_1e3 = lambda arr:  np.sort(arr)[int(photon_N*1e-3)]
 
@@ -114,6 +115,7 @@ def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau
     t_reach_stat_avail = np.zeros(idx_available[0].shape)
     tau_stat_avail = np.zeros(idx_available[0].shape)
     t_free_stat_avail = np.zeros(idx_available[0].shape)
+    tau_stat_avail = np.zeros(idx_available[0].shape)
 
     kk_stat_avail = np.zeros(idx_available[0].shape)
     kz_stat_avail = np.zeros(idx_available[0].shape)
@@ -142,6 +144,14 @@ def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau
             (r_get-rr_tmp[idx_r_reach-1]) /
             (rr_tmp[idx_r_reach]-rr_tmp[idx_r_reach-1]) )
 
+        # linear estimation of tau
+        tau_tmp = (tau_collect[idx_r_reach-1,idx_cur] + 
+            (tau_collect[idx_r_reach,idx_cur]-
+            tau_collect[idx_r_reach-1,idx_cur]) *
+            (r_get-rr_tmp[idx_r_reach-1]) /
+            (rr_tmp[idx_r_reach]-rr_tmp[idx_r_reach-1]) )  
+ 
+
 
         kk_tmp = np.sqrt(np.sum(k_vec_reach_tmp**2))
         kx_tmp = k_vec_reach_tmp[0]
@@ -154,13 +164,13 @@ def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau
         # use t*c as free path integral
         r_free_tmp_b = t_reach_tmp*c_r
 
-        t_reach_stat_avail[idx_tmp] = t_reach_tmp-r_free_tmp_a/c_r
+        t_reach_stat_avail[idx_tmp] = t_reach_tmp- r_free_tmp_a/c_r
         t_free_stat_avail[idx_tmp] = r_free_tmp_a/c_r
 
         x_im_stat_avail[idx_tmp] = r_vec_reach_tmp[0] - r_free_tmp_a*kx_tmp/kk_tmp
         y_im_stat_avail[idx_tmp] = r_vec_reach_tmp[1] - r_free_tmp_a*ky_tmp/kk_tmp
 
-        tau_stat_avail[idx_tmp] = tau[idx_cur]
+        tau_stat_avail[idx_tmp] = tau_tmp
 
         kk_stat_avail[idx_tmp] = kk_tmp
         kz_stat_avail[idx_tmp] = kz_tmp
