@@ -136,6 +136,7 @@ if steps_N == -1:
 collectPoints = np.round(np.linspace(0,steps_N-1,collect_N))
 r_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))
 k_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))
+tau_collect = torch.zeros(collect_N,photon_N).to(torch.device('cpu'))
 t_collect = torch.zeros(collect_N).to(torch.device('cpu'))
 idx_collect  =  0
 t_current = 0
@@ -250,19 +251,23 @@ for idx_step in tqdm(np.arange(steps_N)):
         kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
         # absorb the large tau photon (set as NaN)
-        if (torch.argmax(tau)>4.605) and (idx_step%100==0) :
-            idx_absorb = torch.nonzero(tau>4.605,as_tuple=False)
+        # 9.210 -> I=1e-4
+        # 6.908 -> I=1e-3
+        # 4.605 -> I=1e-2
+        if (tau[torch.argmax(tau)]>9.210) and (idx_step%100==0) :
+            idx_absorb = torch.nonzero(tau>9.210,as_tuple=False)
             r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
             k_vec[:,idx_absorb] = k_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
             rr_cur[idx_absorb] =  rr_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
             kc_cur[idx_absorb] =  kc_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
+            tau[idx_absorb] = tau[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
 
-        
     t_current = t_current + dt
     if idx_step in collectPoints:
         t_collect[idx_collect] = t_current
         r_vec_collect[idx_collect,:,:] = r_vec.cpu()
         k_vec_collect[idx_collect,:,:] = k_vec.cpu()
+        tau_collect[idx_collect,:] = k_vec.cpu()
         idx_collect = idx_collect +1
         if verb_out: # print out the process
             print('F_pe:'+'{:.3f}'.format(np.mean(
@@ -275,6 +280,7 @@ for idx_step in tqdm(np.arange(steps_N)):
 t_collect_local = t_collect.cpu().data.numpy()
 r_vec_collect_local  = r_vec_collect.cpu().data.numpy()
 k_vec_collect_local  = k_vec_collect.cpu().data.numpy()
+tau_collect_local = tau_collect.cpu().data.numpy()
 
 #plt.figure(1)
 #plt.plot(t_collect_local, r_vec_collect_local[:,0,0])
