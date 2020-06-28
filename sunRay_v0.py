@@ -23,7 +23,7 @@ t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
 #photon_N = 1000000     # number of photon
-photon_N = 5000
+photon_N = 10000
 start_r = 1.75;       # in solar radii
 start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
@@ -120,16 +120,14 @@ find_small_1e3 = lambda arr:  torch.sort(arr)[0][int(photon_N*1e-3)]
 
 if steps_N == -1:
     dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
-    dt_nu0  = find_small_1e3(1.0/(nu_s0)) 
+    dt_nu0  = find_small_1e3(1/(nu_s0)) 
     dt_nue0  = 1/nu_e0
-    steps_N = (4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 10/c_r)*(1/dt_dr0+1/dt_nu0+1/dt_nue0)
-    print(1/dt_dr0)
-    print(1/dt_nu0)
-    print(1/dt_nue0)
-    print(2*4.605/nu_e0/(1.-1./f_ratio**2)**0.5)
-    print(25/c_r)
+    steps_N = (2*4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 10/c_r)*(1/dt_dr0+3/dt_nu0+1/dt_nue0+10)
 
-
+    print("Refraction dt : "+str(dt_dr0.cpu().numpy()))
+    print("Scattering dt : "+str(dt_nu0.cpu().numpy()))
+    print("Absorb  t     : "+str((4.605/nu_e0/(1.-1./f_ratio**2)**0.5)[0].cpu().numpy()))
+    
 
 # collect the variables of the simulation
 # collect to CPU (GPU mem is expensive)
@@ -141,9 +139,11 @@ t_collect = torch.zeros(collect_N).to(torch.device('cpu'))
 idx_collect  =  0
 t_current = 0
 
+time.sleep(0.5)
+
 # the big loop
-#for idx_step in tqdm(np.arange(steps_N)): #show process bar
-for idx_step in (np.arange(steps_N)):
+for idx_step in tqdm(np.arange(steps_N)): #show process bar
+#for idx_step in (np.arange(steps_N)):
         
     # dispersion relation reform
     omega = torch.sqrt(pfreq.omega_pe_r(ne_r,rr_cur)**2 + kc_cur**2)
@@ -170,10 +170,10 @@ for idx_step in (np.arange(steps_N)):
         # dynamic time step
         dt_ref = find_small_1e3(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
         dt_dr  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
-        dt_nu  = find_small_1e3(1.0/(nu_s)) 
+        dt_nu  = find_small_1e3(0.1/(nu_s)) 
         # make sure most of the photons have proper dt 
         dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0])]).to(dev_u)
-        
+
         g0 = torch.sqrt(nu_s*kc_cur**2)
 
         # random vec for wave scattering  # [3*N] normal distribution
@@ -245,29 +245,35 @@ for idx_step in (np.arange(steps_N)):
 
         nu_e = (2.91e-6 * ne_r(rr_cur) * 20. / Te**1.5
             *pfreq.omega_pe_r(ne_r, rr_cur)**2/omega**2)
-
-        print(dt)
         
         tau = tau + nu_e*dt
 
         rr_cur = torch.sqrt(torch.sum(r_vec.pow(2),axis=0))
         kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
-        # absorb the large tau photon (set as NaN)
+        # absorb the photon with large optical depth(set as NaN)
         # 9.210 -> I=1e-4
         # 6.908 -> I=1e-3
         # 4.605 -> I=1e-2
         # remove every 128 steps
         if (idx_step%128==0) :
-            idx_absorb = torch.nonzero(tau>9.210,as_tuple=False)
-            if idx_absorb.shape[0]>0:
-                pass
-                #print('removing : '+str(idx_absorb.shape[0]))
+            idx_absorb = torch.nonzero(tau>6.908,as_tuple=False)
             r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
             k_vec[:,idx_absorb] = k_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
             rr_cur[idx_absorb] =  rr_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
             kc_cur[idx_absorb] =  kc_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
             tau[idx_absorb] = tau[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
+
+            # remove [tail and back propagation]
+            idx_absorb2 = torch.nonzero( ((torch.sum(r_vec*k_vec,axis=0)/(rr_cur*kc_cur))<0.1) & 
+                                        (rr_cur < find_small_1e3(rr_cur)),
+                                        as_tuple=False)
+            r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
+            k_vec[:,idx_absorb] = k_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
+            rr_cur[idx_absorb] =  rr_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
+            kc_cur[idx_absorb] =  kc_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
+            tau[idx_absorb] = tau[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
+            
 
     t_current = t_current + dt
     if idx_step in collectPoints:
@@ -283,6 +289,10 @@ for idx_step in (np.arange(steps_N)):
                 ' |  Ne_r:'+'{:.3f}'.format(ne_r(torch.mean(rr_cur)).cpu().data.numpy())+
                 ' |  nu_s: ' +  '{:.3f}'.format(torch.mean(0.1/nu_s).cpu().data.numpy())+
                 ' |  F_ratio: ' +  '{:.3f}'.format(torch.mean(omega0/omega).cpu().data.numpy()))
+        
+
+        
+
 
 t_collect_local = t_collect.cpu().data.numpy()
 r_vec_collect_local  = r_vec_collect.cpu().data.numpy()

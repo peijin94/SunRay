@@ -104,7 +104,7 @@ def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,
     rr_start = np.sqrt(np.sum(r_vec_start**2,axis=0))   
 
     # most of the photons passed this range
-    r_get = 14.96
+    r_get = 15#np.min([find_small_1e3(rr_end),205])
     kx_end,ky_end,kz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
     rx_end,ry_end,rz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
 

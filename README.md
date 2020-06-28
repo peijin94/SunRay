@@ -33,8 +33,11 @@ when ```photon_N``` is smaller than 10000, CPU is faster than GPU due to the mem
 | ```rr_cur```  | ```[photon_N]``` |
 | ```tau```     | ```[photon_N]``` |
 
+For multiple GPU, try bash to combine:
 
-
+```bash
+cat params.input | parallel -j4 'CUDA_VISIBLE_DEVICES=$(({%} - 1)) python {} &> {#}.out'
+```
 
 ## Benchmark
 
