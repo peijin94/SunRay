@@ -1,6 +1,4 @@
-# updated 2020-06-29
-# The script to do the ray tracing
-
+# TODO build a function
 
 import numpy as np
 from sunRay import plasmaFreq as pfreq
@@ -13,17 +11,17 @@ import torch
 import time
 from tqdm import tqdm # for processing bar
 
-torch.set_num_threads(4)
+torch.set_num_threads(2)
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough
 
 # initialize
-steps_N  = 3000#-1# 2000;        # number of the step # set as -1 to autoset
+steps_N  = 300# 2000;        # number of the step # set as -1 to autoset
 collect_N = 150;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
 #photon_N = 1000000     # number of photon
-photon_N = 1000000
+photon_N = 2000000
 start_r = 1.75;       # in solar radii
 start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
@@ -177,8 +175,7 @@ for idx_step in tqdm(np.arange(steps_N)): #show process bar
         g0 = torch.sqrt(nu_s*kc_cur**2)
 
         # random vec for wave scattering  # [3*N] normal distribution
-        W_vec = torch.randn(r_vec.shape,device=dev_u) * torch.sqrt(dt) 
-        #W_vec = torch.randn(r_vec.shape).to(dev_u) * torch.sqrt(dt)   # slow
+        W_vec = torch.randn(r_vec.shape).to(dev_u) * torch.sqrt(dt) 
         Wx,Wy,Wz = W_vec[0,:],W_vec[1,:],W_vec[2,:]
 
         # photon position in spherical coordinates

@@ -16,7 +16,7 @@ def parkerfit(r):
     h0=144.0/6.96e5
     h1=20.0/960.
     nc=3e11*torch.exp(-(r-1.e0)/h1)
-    return  4.8e9/r**14.+ 3e8/r**6.+1.39e6/r**2.3+nc
+    return  4.8e9/r**14. + 3e8/r**6.+1.39e6/r**2.3+nc
 
 @torch.enable_grad()
 def dndr_leblanc98(r):
