@@ -17,13 +17,13 @@ torch.set_num_threads(4)
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough
 
 # initialize
-steps_N  = 3000#-1# 2000;        # number of the step # set as -1 to autoset
-collect_N = 150;      # number of recorded step
+steps_N  = -1#-1# 2000;        # number of the step # set as -1 to autoset
+collect_N = 180;      # number of recorded step
 t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
 #photon_N = 1000000     # number of photon
-photon_N = 1000000
+photon_N = 1000
 start_r = 1.75;       # in solar radii
 start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
@@ -168,9 +168,17 @@ for idx_step in tqdm(np.arange(steps_N)): #show process bar
 
 
         # dynamic time step
-        dt_ref = find_small_1e3(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
-        dt_dr  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
-        dt_nu  = find_small_1e3(0.1/(nu_s)) 
+        # for large particle size, use a part to estimate
+        if photon_N>10000: 
+            dt_ref = find_small_1e3((torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param))[0:10000]) # t step
+            dt_dr  = find_small_1e3((rr_cur/omega0*kc_cur)[0:10000])/t_param
+            dt_nu  = find_small_1e3((0.1/(nu_s))[0:10000]) 
+        else:    
+            dt_ref = find_small_1e3(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
+            dt_dr  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
+            dt_nu  = find_small_1e3(0.1/(nu_s)) 
+        
+    
         # make sure most of the photons have proper dt 
         dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0])]).to(dev_u)
 
