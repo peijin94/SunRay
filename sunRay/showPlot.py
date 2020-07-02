@@ -133,7 +133,10 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05):
 
     (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(x_data,y_data,weights_data)
     
-    FWHM_range = raystat.FWHM(t_bin_center,flux_all)
+    try:
+        FWHM_range = raystat.FWHM(t_bin_center,flux_all)
+    except:
+        FWHM_range=[np.nan,np.nan]
 
     print(FWHM_range[1]-FWHM_range[0])
 
@@ -167,4 +170,4 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05):
     ax_FWHM.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')
     ax_XY.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')
     
-    plt.show()
+    return plt.gcf()

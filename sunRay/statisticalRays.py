@@ -255,11 +255,12 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05):
     x_im_stat = x_data
     y_im_stat = y_data
     
+
     t_reach_1au_stat = t_data
     weights_stat = weights_data
 
-    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-1
-    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.25))]
+    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.2
+    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-1e-3))]+0.4
 
     num_t_bins = int((upper_t_lim-lower_t_lim)/t_step)
     t_bins = np.linspace(lower_t_lim,upper_t_lim,num_t_bins)
@@ -282,20 +283,24 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05):
 
         idx_in_t_range = np.where((t_reach_1au_stat>t_bins[idx_t_bin]) 
                                 & (t_reach_1au_stat<t_bins[idx_t_bin+1]))
-        
-        x_im_in_t_range = x_im_stat[idx_in_t_range]
-        y_im_in_t_range = y_im_stat[idx_in_t_range]
-        weights_in_t_range = weights_stat[idx_in_t_range]
-        #print(weights_in_t_range)
+        #print(str(t_bins[idx_t_bin])+" [-] "+str((idx_in_t_range[0].shape)))
 
-        # collect the variation of xc yc sx sy
-        ( xc_all[idx_cur],yc_all[idx_cur],sx_all[idx_cur],sy_all[idx_cur],
-            err_xc_all[idx_cur],err_yc_all[idx_cur],
-            err_sx_all[idx_cur],err_sy_all[idx_cur]
-            ) = centroidXYFWHM(x_im_in_t_range,y_im_in_t_range,weights_in_t_range)
-        flux_all[idx_cur] = np.sum(weights_in_t_range*np.ones(x_im_in_t_range.shape))
-        #flux_all[idx_cur] = np.sum(1.0*np.ones(x_im_in_t_range.shape))
+        if True:#(idx_in_t_range[0].shape[0])>2:
+
+            x_im_in_t_range = x_im_stat[idx_in_t_range]
+            y_im_in_t_range = y_im_stat[idx_in_t_range]
+            weights_in_t_range = weights_stat[idx_in_t_range]
+            #print(weights_in_t_range)
+
+            # collect the variation of xc yc sx sy
+            ( xc_all[idx_cur],yc_all[idx_cur],sx_all[idx_cur],sy_all[idx_cur],
+                err_xc_all[idx_cur],err_yc_all[idx_cur],
+                err_sx_all[idx_cur],err_sy_all[idx_cur]
+                ) = centroidXYFWHM(x_im_in_t_range,y_im_in_t_range,weights_in_t_range)
+            flux_all[idx_cur] = np.sum(weights_in_t_range*np.ones(x_im_in_t_range.shape))
+            #flux_all[idx_cur] = np.sum(1.0*np.ones(x_im_in_t_range.shape))
         
+
         idx_cur = idx_cur + 1
 
     return (t_bin_center,flux_all,xc_all,yc_all,

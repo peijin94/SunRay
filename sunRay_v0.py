@@ -23,15 +23,15 @@ t_param = 20.0;       # parameter of t step length
 # larger t_parm corresponding to smaller dt
 
 #photon_N = 1000000     # number of photon
-photon_N = 1000
+photon_N = 10000
 start_r = 1.75;       # in solar radii
 start_theta = 20/180.0*np.pi;    # in rad
 start_phi  = 0/180.0*np.pi;     # in rad
 
 f_ratio  = 1.1        # f/f_pe
 ne_r = dm.parkerfit   # density model used for this calculation 
-epsilon = 0.6         # fluctuation scale
-anis = 0.4            # the anisotropic parameter
+epsilon = 0.4         # fluctuation scale
+anis = 0.2            # the anisotropic parameter
 asym = 1.0            # asymetric scale
 
 Te = 86.0             # eV temperature in eV
