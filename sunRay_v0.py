@@ -28,8 +28,8 @@ def run_par(eps_input, alpha_input):
             start_phi,  f_ratio, epsilon ,  anis, asym,  omega0, freq0, 
             t_collect, tau, r_vec_collect_local,  k_vec_collect_local,  tau_collect_local
             ) = anisRay.runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, 
-                photon_N = 20000, start_r = 1.75, start_theta = 20/180.0*np.pi,    
-                start_phi  = 0/180.0*np.pi, f_ratio  = 1.1, #ne_r = dm.parkerfit,    
+                photon_N = 20000, start_r = 1.75, start_theta = 0./180.0*np.pi,    
+                start_phi  = 0./180.0*np.pi, f_ratio  = 1.1, #ne_r = dm.parkerfit,    
                 epsilon = eps_input, anis = alpha_input, asym = 1.0, Te = 86.0, 
                 Scat_include = True, Show_param = True,
                 Show_result_k = False, Show_result_r = False,  verb_out = False,

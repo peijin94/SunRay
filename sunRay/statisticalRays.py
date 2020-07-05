@@ -14,6 +14,8 @@ from scipy import integrate
 
 def collectXYt1AU(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau,omega0):
 
+# this collection method deprecated
+
     find_small_1e3 = lambda arr:  np.sort(arr)[int(photon_N*1e-3)]
 
     # collect the photons
