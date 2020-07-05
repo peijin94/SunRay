@@ -90,7 +90,7 @@ def collectXYt1AU(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau
 
 
 def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,
-            t_collect,tau_collect,omega0,Rcollect):
+            t_collect,tau_collect,omega0):
     
     find_small_1e3 = lambda arr:  np.sort(arr)[int(photon_N*1e-3)]
 

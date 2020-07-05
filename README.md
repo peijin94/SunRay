@@ -9,6 +9,7 @@ The major computational part is done with the help of PyTorch, which is known as
 Note: this is done with:  
     PyTorch==1.5.0  
     python>=3.8.3
+    ray (for parallelize)
 
 ## Variables
 
@@ -33,7 +34,7 @@ when ```photon_N``` is smaller than 10000, CPU is faster than GPU due to the mem
 | ```rr_cur```  | ```[photon_N]``` |
 | ```tau```     | ```[photon_N]``` |
 
-For multiple GPU, try bash to combine:
+For multiple GPU, try bash ```parallel``` or  python ```multiprocessing``` to parallel:
 
 ```bash
 cat params.input | parallel -j4 'CUDA_VISIBLE_DEVICES=$(({%} - 1)) python {} &> {#}.out'

@@ -59,10 +59,12 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     # frequency of the wave
     freq0 = f_ratio * pfreq.omega_pe_r(ne_r,start_r.to(dev_u))/(2*PI)
-    print('----------------------------------')
-    print('Frequency : '+str(freq0.cpu().data.numpy()/1e6)[1:7]+'MHz')
-    print('Compute with : '+str(dev_u))
-    print('----------------------------------')
+
+    if verb_out:
+        print('----------------------------------')
+        print('Frequency : '+str(freq0.cpu().data.numpy()/1e6)[1:7]+'MHz')
+        print('Compute with : '+str(dev_u))
+        print('----------------------------------')
 
     #freq0 = torch.Tensor([freq0]).to(dev_u)
 
@@ -145,7 +147,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     time.sleep(0.5)
 
     # the big loop
-    for idx_step in tqdm(np.arange(steps_N)): #show process bar
+    for idx_step in (tqdm(np.arange(steps_N)) if verb_out else np.arange(steps_N)): #show process bar
     #for idx_step in (np.arange(steps_N)):
             
         # dispersion relation reform
