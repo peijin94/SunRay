@@ -14,6 +14,9 @@ import time
 from tqdm import tqdm # for processing bar
 import sunRay.SunRayRunAnisScat as anisRay
 
+
+import sunRay.statisticalRays as raystat
+
 # torch thread dosen't work
 # njit dosen't work
 
@@ -35,7 +38,23 @@ def run_par(eps_input, alpha_input):
                 Show_result_k = False, Show_result_r = False,  verb_out = False,
                 sphere_gen = False, num_thread =1 )
 
-    return 0
+    (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat
+        ) = raystat.collectXYtatR(photon_N,r_vec_collect_local,
+        k_vec_collect_local,t_collect,tau_collect_local,omega0)
+
+    (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(
+        x_im_stat,y_im_stat,weights_stat)
+
+    (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
+        err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_im_stat,y_im_stat,
+        t_reach_1au_stat,weights_stat,num_t_bins=100)
+
+    FWHM_range = raystat.FWHM(t_bin_center,flux_all)
+    duration_cur  =  FWHM_range[1]-FWHM_range[0]
+
+    # TODO : collecting multiple variable
+
+    return (duration_cur)
 
 def run_parset(arr_eps,arr_alpha, num_process=16):
     

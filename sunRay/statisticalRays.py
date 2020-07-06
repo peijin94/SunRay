@@ -249,9 +249,13 @@ def centroidXYFWHM(x,y,weights_data=1):
     
     return (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy)
 
-def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05):
+def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-1):
     """
         The variation of the XY positions with a [t_step] cadence
+        
+        input vars
+            [-] : num_t_bins : -1 if according to the [t_step]
+                    positive integer to override t_step
     """
 
     x_im_stat = x_data
@@ -261,12 +265,13 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05):
     t_reach_1au_stat = t_data
     weights_stat = weights_data
 
-    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.2
+    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.3
     upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-1e-3))]+0.4
 
-    num_t_bins = int((upper_t_lim-lower_t_lim)/t_step)
-    t_bins = np.linspace(lower_t_lim,upper_t_lim,num_t_bins)
+    if num_t_bins<0:
+        num_t_bins = int((upper_t_lim-lower_t_lim)/t_step)
 
+    t_bins = np.linspace(lower_t_lim,upper_t_lim,num_t_bins)
     t_bin_center = (t_bins[0:-1]+t_bins[1:])/2
 
 
