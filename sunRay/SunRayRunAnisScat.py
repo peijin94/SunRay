@@ -126,7 +126,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
         dt_nu0  = find_small_1e3(1/(nu_s0)) 
         dt_nue0  = 1/nu_e0
-        steps_N = (1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 12/c_r)*(1/dt_dr0+2/dt_nu0+1/dt_nue0+10)*(0.1+(anis**0.5))
+        steps_N = (1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 
+            12/c_r)*(1/dt_dr0+1.5/dt_nu0+1/dt_nue0+10)*(0.1+(anis*4))#(0.1+(anis**0.5))
         if verb_out:
             print("Refraction dt : "+str(1/dt_dr0.cpu().numpy()))
             print("Scattering dt : "+str(1/dt_nu0.cpu().numpy()))

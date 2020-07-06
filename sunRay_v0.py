@@ -13,8 +13,6 @@ import torch
 import time
 from tqdm import tqdm # for processing bar
 import sunRay.SunRayRunAnisScat as anisRay
-
-
 import sunRay.statisticalRays as raystat
 
 # torch thread dosen't work
@@ -25,14 +23,14 @@ import multiprocessing as mp
 arr_eps   = np.linspace(0.03,0.5,30)
 arr_alpha = np.linspace(0.05,0.95,30)
 
-def run_par(eps_input, alpha_input):
+def run_par(eps_input, alpha_input,photon_N = 10000):
 
 
     (steps_N  ,  collect_N,  photon_N, start_r,  start_theta, 
             start_phi,  f_ratio, epsilon ,  anis, asym,  omega0, freq0, 
             t_collect, tau, r_vec_collect_local,  k_vec_collect_local,  tau_collect_local
             ) = anisRay.runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, 
-                photon_N = 8000, start_r = 1.75, start_theta = 1.e-6/180.0*np.pi,    
+                photon_N = photon_N, start_r = 1.75, start_theta = 1.e-6/180.0*np.pi,    
                 start_phi  = 1.e-6/180.0*np.pi, f_ratio  = 1.1, #ne_r = dm.parkerfit,    
                 epsilon = eps_input, anis = alpha_input,  asym = 1.0, Te = 86.0, 
                 Scat_include = True, Show_param = True,
@@ -85,6 +83,7 @@ def run_parset(arr_eps,arr_alpha, num_process=20):
             idx_alpha = idx_alpha + 1
 
         idx_eps = idx_eps+1
+        print('Proc : '+str(idx_eps)+' of '+str(arr_eps.shape[0]))
 
     return (res_arr_tFWHM,res_arr_sizex,res_arr_sizey)
 
