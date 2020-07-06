@@ -127,11 +127,11 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         dt_nu0  = find_small_1e3(1/(nu_s0)) 
         dt_nue0  = 1/nu_e0
         steps_N = (1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 12/c_r)*(1/dt_dr0+2/dt_nu0+1/dt_nue0+10)*(0.1+(anis**0.5))
-
-        print("Refraction dt : "+str(1/dt_dr0.cpu().numpy()))
-        print("Scattering dt : "+str(1/dt_nu0.cpu().numpy()))
-        print("Absorb Col    : "+str(1/dt_nue0.cpu().numpy()[0]))
-        print("Absorb  t     : "+str((1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5)[0].cpu().numpy()))
+        if verb_out:
+            print("Refraction dt : "+str(1/dt_dr0.cpu().numpy()))
+            print("Scattering dt : "+str(1/dt_nu0.cpu().numpy()))
+            print("Absorb Col    : "+str(1/dt_nue0.cpu().numpy()[0]))
+            print("Absorb  t     : "+str((1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5)[0].cpu().numpy()))
         
 
     # collect the variables of the simulation
@@ -296,7 +296,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             k_vec_collect[idx_collect,:,:] = k_vec.cpu()
             tau_collect[idx_collect,:] = tau.cpu()
             idx_collect = idx_collect +1
-            if verb_out: # print out the process
+            if verb_out==2: # print out the process
                 print('F_pe:'+'{:.3f}'.format(np.mean(
                     (pfreq.omega_pe_r(ne_r,torch.mean(rr_cur))/2/PI/1e6).cpu().data.numpy()))+
                     ' |  R:'+'{:.3f}'.format(torch.mean(rr_cur).cpu().data.numpy())+

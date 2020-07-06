@@ -106,10 +106,11 @@ def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,
     rr_start = np.sqrt(np.sum(r_vec_start**2,axis=0))   
 
     # most of the photons passed this range
-    r_get = 15#np.min([find_small_1e3(rr_end),205])
+    r_get = np.min([find_small_1e3(rr_end),205])
     kx_end,ky_end,kz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
     rx_end,ry_end,rz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
 
+    rr_end = np.nan_to_num(rr_end)
     idx_available = np.where(rr_end>(r_get-0.1))
 
     x_im_stat_avail = np.zeros(idx_available[0].shape)
