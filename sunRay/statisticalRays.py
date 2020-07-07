@@ -261,8 +261,8 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     t_reach_1au_stat = t_data
     weights_stat = weights_data
 
-    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.3
-    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-1e-3))]+0.4
+    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.5
+    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-1e-3))]+0.5
 
     if num_t_bins<0:
         num_t_bins = int((upper_t_lim-lower_t_lim)/t_step)

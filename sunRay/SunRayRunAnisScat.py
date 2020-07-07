@@ -21,7 +21,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             f_ratio  = 1.1, ne_r = dm.parkerfit,    epsilon = 0.4, anis = 0.2,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
-            sphere_gen = False, num_thread =4 ):
+            sphere_gen = False, num_thread =4, early_cut= True ):
     """
     name: runRays
     
@@ -138,10 +138,10 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     # collect the variables of the simulation
     # collect to CPU (GPU mem is expensive)
     collectPoints = np.round(np.linspace(0,steps_N-1,collect_N))
-    r_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))
-    k_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))
-    tau_collect = torch.zeros(collect_N,photon_N).to(torch.device('cpu'))
-    t_collect = torch.zeros(collect_N).to(torch.device('cpu'))
+    r_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))-1
+    k_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))-1
+    tau_collect = torch.zeros(collect_N,photon_N).to(torch.device('cpu'))-1
+    t_collect = torch.zeros(collect_N).to(torch.device('cpu'))-1
     idx_collect  =  0
     t_current = 0
 
@@ -175,7 +175,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
             # dynamic time step
             # for large particle size, use a part to estimate
-            if photon_N>10000: 
+            if photon_N>10001: 
                 dt_ref = find_small_1e3((torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param))[0:10000]) # t step
                 dt_dr  = find_small_1e3((rr_cur/omega0*kc_cur)[0:10000])/t_param
                 dt_nu  = find_small_1e3((0.1/(nu_s))[0:10000]) 
@@ -280,7 +280,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 tau[idx_absorb] = tau[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
 
                 # remove [tail and back propagation]
-                idx_absorb2 = torch.nonzero( ((torch.sum(r_vec*k_vec,axis=0)/(rr_cur*kc_cur))<0.1) & 
+                idx_absorb2 = torch.nonzero( ((torch.sum(r_vec*k_vec,axis=0)/(rr_cur*kc_cur))<0.01) & 
                                             (rr_cur < find_small_1e3(rr_cur)),
                                             as_tuple=False)
                 r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
@@ -305,7 +305,19 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                     ' |  nu_s: ' +  '{:.3f}'.format(torch.mean(0.1/nu_s).cpu().data.numpy())+
                     ' |  F_ratio: ' +  '{:.3f}'.format(torch.mean(omega0/omega).cpu().data.numpy()))
             
+            if early_cut and (idx_step>5000):
+                if find_small_1e3(rr_cur)>205: # all out of 1AU
+                    final_collect = idx_collect
+                    
+                    # cut
+                    t_collect = t_current[0:final_collect]
+                    r_vec_collect = r_vec_collect[0:final_collect,:,:] 
+                    k_vec_collect = k_vec_collect[0:final_collect,:,:] 
+                    tau_collect   = tau_collect[0:final_collect,:] 
+                    
+                    collect_N = final_collect
 
+                    break # stop the loop
             
 
 

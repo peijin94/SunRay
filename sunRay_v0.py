@@ -23,7 +23,8 @@ import multiprocessing as mp
 arr_eps   = np.linspace(0.03,0.5,30)
 arr_alpha = np.linspace(0.05,0.95,30)
 
-def run_par(eps_input, alpha_input,photon_N = 10000):
+def run_par(eps_input, alpha_input,photon_N = 12000,
+        savedata=True,data_dir='./datatmp/'):
 
 
     (steps_N  ,  collect_N,  photon_N, start_r,  start_theta, 
@@ -37,6 +38,18 @@ def run_par(eps_input, alpha_input,photon_N = 10000):
                 Show_result_k = False, Show_result_r = False,  verb_out = False,
                 sphere_gen = False, num_thread =2 )
 
+    if savedata:
+        np.savez(data_dir+'RUN_[eps'+str(np.round(eps_input,3)) +
+            ']_[alpha'+str(np.round(alpha_input,3))+'].npz', 
+            steps_N  = steps_N, 
+            collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
+            start_theta = start_theta, start_phi  = start_phi, 
+            f_ratio  = f_ratio, epsilon = epsilon , anis = anis, asym = asym,
+            omega0=omega0.cpu(), freq0=freq0.cpu(),
+            t_collect=t_collect.cpu(), tau=tau.cpu(),
+            r_vec_collect_local=r_vec_collect_local,
+            k_vec_collect_local=k_vec_collect_local,
+            tau_collect_local = tau_collect_local)
 
     (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat
         ) = raystat.collectXYtatR(photon_N,r_vec_collect_local,
@@ -47,7 +60,7 @@ def run_par(eps_input, alpha_input,photon_N = 10000):
 
     (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
         err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_im_stat,y_im_stat,
-        t_reach_1au_stat,weights_stat,num_t_bins=100)
+        t_reach_1au_stat,weights_stat,num_t_bins=60)
 
     FWHM_range = raystat.FWHM(t_bin_center,flux_all)
     duration_cur  =  FWHM_range[1]-FWHM_range[0]
@@ -93,7 +106,7 @@ if __name__ =="__main__":
     arr_eps   = np.linspace(0.03,0.5,20)    
     arr_alpha = np.linspace(0.05,0.95,20)
 
-    res = run_parset(arr_eps, arr_alpha)
+    res = run_parset(arr_eps, arr_alpha, num_process=20)
 
     np.savez('parset.npz',res)
     print(res)

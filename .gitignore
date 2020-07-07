@@ -8,6 +8,7 @@ __pycache__/
 *.npz
 
 img/
+datatmp/
 
 # C extensions
 *.so

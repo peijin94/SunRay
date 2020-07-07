@@ -126,10 +126,10 @@ def XYDistributionImage(ax_main,x,y,weights_data,bins_data):
 
 
 
-def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05):
+def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-1):
 
     (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
-        err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_data,y_data,t_data,weights_data,t_step)
+        err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_data,y_data,t_data,weights_data,t_step,num_t_bins)
 
     (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(x_data,y_data,weights_data)
     
