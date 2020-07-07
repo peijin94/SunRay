@@ -39,6 +39,7 @@ def run_par(eps_input, alpha_input,photon_N = 12000,
                 sphere_gen = False, num_thread =2 )
 
     if savedata:
+        # save the data to npz file
         np.savez(data_dir+'RUN_[eps'+str(np.round(eps_input,3)) +
             ']_[alpha'+str(np.round(alpha_input,3))+'].npz', 
             steps_N  = steps_N, 
@@ -101,7 +102,6 @@ def run_parset(arr_eps,arr_alpha, num_process=16):
     return (res_arr_tFWHM,res_arr_sizex,res_arr_sizey)
 
 if __name__ =="__main__":
-
     
     arr_eps   = np.linspace(0.03,0.5,20)    
     arr_alpha = np.linspace(0.05,0.95,20)
