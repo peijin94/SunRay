@@ -206,14 +206,9 @@ def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,
     #t_delay = integrate.quad(lambda x: (1/(c_r*np.sqrt(1.0-pfreq.omega_pe_r_np(dm.leblanc98,x)/omega0)) ) ,r_get,215 )[0]
     
     t_delay = integrate.quad(lambda x: (1/(c_r*np.sqrt(1.0-pfreq.omega_pe_r_np(dm.leblanc98,x)/omega0)) ),
-                 np.min(rr_start),r_get )[0]
-
-    t_delay_test = integrate.quad(lambda x: (1/(c_r*np.sqrt(1.0-pfreq.omega_pe_r_np(dm.leblanc98,x)/omega0)) ),
-                 14,200 )[0] -((200-14)/c_r)
-
+                 np.min(rr_start),r_get,full_output=1 )[0]
 
     #print(t_delay)
-    #print(t_delay_test)
     #print(np.mean(t_free_stat))
     #print(r_get+1)
     #print(np.mean(t_reach_stat))

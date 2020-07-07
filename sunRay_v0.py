@@ -35,7 +35,7 @@ def run_par(eps_input, alpha_input,photon_N = 10000):
                 epsilon = eps_input, anis = alpha_input,  asym = 1.0, Te = 86.0, 
                 Scat_include = True, Show_param = True,
                 Show_result_k = False, Show_result_r = False,  verb_out = False,
-                sphere_gen = False, num_thread =1 )
+                sphere_gen = False, num_thread =2 )
 
 
     (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat
@@ -58,7 +58,7 @@ def run_par(eps_input, alpha_input,photon_N = 10000):
 
     return (duration_cur,sx,sy)
 
-def run_parset(arr_eps,arr_alpha, num_process=20):
+def run_parset(arr_eps,arr_alpha, num_process=16):
 
     res_arr_tFWHM = np.zeros([arr_eps.shape[0],arr_alpha.shape[0]])
     res_arr_sizex = np.zeros([arr_eps.shape[0],arr_alpha.shape[0]])
@@ -89,7 +89,12 @@ def run_parset(arr_eps,arr_alpha, num_process=20):
 
 if __name__ =="__main__":
 
+    
+    arr_eps   = np.linspace(0.03,0.5,20)    
+    arr_alpha = np.linspace(0.05,0.95,20)
+
     res = run_parset(arr_eps, arr_alpha)
 
+    np.savez('parset.npz',res)
     print(res)
     # use ray for parallel
