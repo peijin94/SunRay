@@ -10,6 +10,7 @@ from sunRay.parameters import c_r
 from sunRay import plasmaFreq as pfreq
 from sunRay import densityModel as dm
 from scipy import integrate
+from scipy.optimize import curve_fit
 
 
 def collectXYt1AU(photon_N,r_vec_collect_local,k_vec_collect_local,t_collect,tau,omega0):
@@ -323,3 +324,18 @@ def FWHM(x, y):
     zero_crossings_i = np.where(zero_crossings)[0]
     return [lin_interp(x, y, zero_crossings_i[0], half),
             lin_interp(x, y, zero_crossings_i[1], half)]
+
+
+def fit_biGaussian(x,y):
+    """
+    Derive the best fit curve for the flux-time distribution
+    """
+    popt, pcov = curve_fit(biGaussian,x,y,p0=(2.,1.,1.,2.))
+    return popt
+
+
+def biGaussian(x,x0,sig1,sig2,A):
+    # combine 2 gaussian:
+    return A*np.exp(-0.5*((x-x0)/
+        (sig1*(x<x0)+sig2*(x>=x0)))**2)
+    

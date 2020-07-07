@@ -133,16 +133,26 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
 
     (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(x_data,y_data,weights_data)
     
-    try:
-        FWHM_range = raystat.FWHM(t_bin_center,flux_all)
-    except:
-        FWHM_range=[np.nan,np.nan]
+    #------------- use the data FWHM
+    #try:
+    #    FWHM_range = raystat.FWHM(t_bin_center,flux_all)
+    #except:
+    #    FWHM_range=[np.nan,np.nan]
+
+    #------------- use the fitted FWHM
+    fit_res = raystat.fit_biGaussian(t_bin_center,flux_all)
+    fitted_flux = raystat.biGaussian(t_bin_center,*fit_res)
+
+    FWHM_range = raystat.FWHM(t_bin_center,fitted_flux)
 
     print(FWHM_range[1]-FWHM_range[0])
 
     plt.figure(figsize=(4.5, 6))
     ax_t = plt.axes([0.1,0.65,0.8,0.3])
+    # flux data
     ax_t.step(t_bin_center,flux_all/np.max(flux_all),where='mid',color='k')
+    # fitted data
+    ax_t.plot(t_bin_center,fitted_flux/np.max(fitted_flux),color='C9')
     ax_t.set_ylabel('Normalized')
     ax_t.tick_params(direction='in', labelbottom=False)
     ax_t.set_ylim([0,1.1])
