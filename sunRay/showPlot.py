@@ -143,7 +143,7 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     fit_res = raystat.fit_biGaussian(t_bin_center,flux_all)
     fitted_flux = raystat.biGaussian(t_bin_center,*fit_res)
 
-    FWHM_range = raystat.FWHM(t_bin_center,fitted_flux)
+    FWHM_range = raystat.FWHM(t_bin_center,flux_all)
 
     print(FWHM_range[1]-FWHM_range[0])
 

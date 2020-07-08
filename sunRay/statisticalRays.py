@@ -167,7 +167,7 @@ def centroidXYFWHM(x,y,weights_data=1):
     
     return (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy)
 
-def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-1):
+def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.005,num_t_bins=-1):
     """
         The variation of the XY positions with a [t_step] cadence
         
@@ -183,8 +183,8 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     t_reach_1au_stat = t_data
     weights_stat = weights_data
 
-    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.5
-    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-1e-3))]+0.5
+    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.2
+    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.15))]+0.2
 
     if num_t_bins<0:
         num_t_bins = int((upper_t_lim-lower_t_lim)/t_step)
@@ -251,7 +251,7 @@ def fit_biGaussian(x,y):
     """
     Derive the best fit curve for the flux-time distribution
     """
-    popt, pcov = curve_fit(biGaussian,x,y,p0=(2.,1.,1.,2.))
+    popt, pcov = curve_fit(biGaussian,x,y,p0=(np.mean(x),0.2,1.,1.))
     return popt
 
 
@@ -281,10 +281,17 @@ def reductKeyPar(photon_N,r_vec_collect_local,k_vec_collect_local,
         err_sx_all,err_sy_all) = variationXYFWHM(x_im_stat,y_im_stat,
         t_reach_1au_stat,weights_stat,num_t_bins=num_t_bins)
 
+    try:
+        fit_res = fit_biGaussian(t_bin_center,flux_all)
+        fitted_flux = biGaussian(t_bin_center,*fit_res)
+        FWHM_range = FWHM(t_bin_center,fitted_flux)
+    except:
+        try:
+            FWHM_range = FWHM(t_bin_center,flux_all)
+        except:
+            FWHM_range = [0,0]
+            print('[Warning] FWHM not true')
     
-    fit_res = fit_biGaussian(t_bin_center,flux_all)
-    fitted_flux = biGaussian(t_bin_center,*fit_res)
 
-    FWHM_range = FWHM(t_bin_center,fitted_flux)
-
-    pass
+    duration_cur  =  FWHM_range[1]-FWHM_range[0]
+    return (duration_cur,sx,sy)

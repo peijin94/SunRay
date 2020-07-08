@@ -52,22 +52,11 @@ def run_par(eps_input, alpha_input,photon_N = 12000,
             k_vec_collect_local=k_vec_collect_local,
             tau_collect_local = tau_collect_local)
 
-    (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat
-        ) = raystat.collectXYtatR(photon_N,r_vec_collect_local,
-        k_vec_collect_local,t_collect,tau_collect_local,omega0)
-
-    (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(
-        x_im_stat,y_im_stat,weights_stat)
-
-    (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
-        err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_im_stat,y_im_stat,
-        t_reach_1au_stat,weights_stat,num_t_bins=60)
-
-    FWHM_range = raystat.FWHM(t_bin_center,flux_all)
-    duration_cur  =  FWHM_range[1]-FWHM_range[0]
-
-    # TODO : collecting multiple variable
-
+    
+    (duration_cur,sx,sy) = raystat.reductKeyPar(photon_N,
+        r_vec_collect_local,k_vec_collect_local,
+        t_collect,tau_collect_local,omega0,num_t_bins=60)
+    
     print(duration_cur)
 
     return (duration_cur,sx,sy)
