@@ -262,9 +262,29 @@ def biGaussian(x,x0,sig1,sig2,A):
 
 
 
-def reductKeyPar(a):
+def reductKeyPar(photon_N,r_vec_collect_local,k_vec_collect_local,
+        t_collect,tau_collect_local,omega0,num_t_bins=60):
     """
     Reduct the simulation output to very important parameters
+    Input :
+        Variables from [SunRayRunAnisScat]
     """
+
+    (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat
+        ) = collectXYtatR(photon_N,r_vec_collect_local,
+        k_vec_collect_local,t_collect,tau_collect_local,omega0)
+
+    (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = centroidXYFWHM(
+        x_im_stat,y_im_stat,weights_stat)
+
+    (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
+        err_sx_all,err_sy_all) = variationXYFWHM(x_im_stat,y_im_stat,
+        t_reach_1au_stat,weights_stat,num_t_bins=num_t_bins)
+
+    
+    fit_res = fit_biGaussian(t_bin_center,flux_all)
+    fitted_flux = biGaussian(t_bin_center,*fit_res)
+
+    FWHM_range = FWHM(t_bin_center,fitted_flux)
 
     pass
