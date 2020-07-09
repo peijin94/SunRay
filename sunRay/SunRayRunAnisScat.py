@@ -21,7 +21,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             f_ratio  = 1.1, ne_r = dm.parkerfit,    epsilon = 0.4, anis = 0.2,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
-            sphere_gen = False, num_thread =4, early_cut= True ):
+            sphere_gen = False, num_thread =4, early_cut= True ,dev_u = dev_u,
+            save_npz = False, data_dir='./datatmp/'):
     """
     name: runRays
     
@@ -44,6 +45,9 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         Show_param : Display the parameters
         Show_result_k : Show simulation result k
         verb_out : print message
+        dev_u : device to use for the calculation
+        save_npz [Bool] : whether to save the simulation result to file
+        dir_npz : the directory for the npz data file 
 
     results:
         The t k and r of the ray-tracing result
@@ -335,6 +339,22 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     if Show_result_r:
         SP.showResultR(r_vec_collect_local)
 
+    if save_npz:
+         # save the data to npz file
+        np.savez(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
+            ']_[alpha'+str(np.round(anis,5))+'].npz', 
+            steps_N  = steps_N, 
+            collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
+            start_theta = start_theta, start_phi  = start_phi, 
+            f_ratio  = f_ratio, epsilon = epsilon , anis = anis, asym = asym,
+            omega0=omega0.cpu(), freq0=freq0.cpu(),
+            t_collect=t_collect.cpu(), tau=tau.cpu(),
+            r_vec_collect_local=r_vec_collect_local,
+            k_vec_collect_local=k_vec_collect_local,
+            tau_collect_local = tau_collect_local)
+
+
     return ( steps_N  ,  collect_N,  photon_N, start_r,  start_theta, start_phi,  f_ratio, 
             epsilon ,  anis, asym,  omega0.cpu(), freq0.cpu(), t_collect.cpu(), tau.cpu(),
             r_vec_collect_local,  k_vec_collect_local,  tau_collect_local)
+
