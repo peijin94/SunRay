@@ -341,7 +341,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     if save_npz:
          # save the data to npz file
-        np.savez(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
+        np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
             ']_[alpha'+str(np.round(anis,5))+'].npz', 
             steps_N  = steps_N, 
             collect_N = collect_N, photon_N = photon_N, start_r = start_r, 

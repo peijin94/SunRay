@@ -17,7 +17,8 @@ import sunRay.SunRayRunAnisScat as anisRay
 import sunRay.statisticalRays as raystat
 
 
-def sunrayMPI(arr_eps,arr_alpha,dev_u):
+def sunrayMPI(arr_eps,arr_alpha,dev_u,photon_N = 100000,
+        data_dir='./datatmp/',save_npz=True):
 
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
@@ -54,15 +55,25 @@ def sunrayMPI(arr_eps,arr_alpha,dev_u):
     work_content = [job_content[x] for x in this_worker_job ]
 
     for a_piece_of_work in work_content:
-        print("[Info] : parameter",a_piece_of_work)
+        anisRay.runRays(steps_N  = -1 , collect_N = 120, t_param = 20.0, 
+                photon_N = photon_N, start_r = 1.75, start_theta = 1.e-6/180.0*np.pi,    
+                start_phi  = 1.e-6/180.0*np.pi, f_ratio  = 1.1, #ne_r = dm.parkerfit,    
+                epsilon = a_piece_of_work[0], anis = a_piece_of_work[1],  asym = 1.0, Te = 86.0, 
+                Scat_include = True, Show_param = True,
+                Show_result_k = False, Show_result_r = False,  verb_out = False,
+                sphere_gen = False, num_thread =2 , early_cut= True,
+                dev_u= dev_u,save_npz=save_npz,data_dir=data_dir)
+
+        print("[Info] : parameter",[np.round(x,5) for x in  a_piece_of_work])
         
 
 if __name__=="__main__": 
     
     # parameter space to explore
-    arr_eps   = np.linspace(0.03,0.5,8)    
-    arr_alpha = np.linspace(0.05,0.95,8)
+    arr_eps   = np.linspace(0.03,0.5,36)    
+    arr_alpha = np.linspace(0.05,0.95,36)
     
     dev_u = torch.device('cpu') 
-    sunrayMPI(arr_eps,arr_alpha,dev_u=dev_u)
+    sunrayMPI(arr_eps,arr_alpha,dev_u=dev_u
+            ,data_dir='/home/chbwang/pjzhang/sunray/datatmp/')
     pass
