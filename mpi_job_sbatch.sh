@@ -18,4 +18,4 @@ MPIRUN=mpiexec #MPICH
 MPIOPT="-iface ib0" #MPICH3 # use infiniband for communication
 $MPIRUN $MPIOPT -n 72 python /home/chbwang/pjzhang/sunray/sunRay_MPI.py
 
-echo End at `date`
+echo End at `date`  # for the measure of the running time of the 
