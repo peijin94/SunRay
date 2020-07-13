@@ -21,7 +21,5 @@ def freq_to_R(f,f_ratio,ne_r = dm.parkerfit):
     """
     f_pe = f/f_ratio
     func  = lambda R : f_pe - (pf.omega_pe_r_np(ne_r,torch.Tensor([R])) /2/PI).numpy()[0]
-
     R_solution = fsolve(func, 2) # solve the R
-
     return R_solution # [R_s]

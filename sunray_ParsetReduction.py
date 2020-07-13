@@ -1,4 +1,5 @@
-# collect the saved npz data into an array
+# a script to collect the level 0 npz data
+# then reduct to level 3 data
 
 import numpy as np 
 import sunRay.statisticalRays as raystat
@@ -41,7 +42,7 @@ def run_reduction(arr_eps, arr_alpha,data_dir='./datatmp/'):
             tau_collect_local = dataset_cur.f.tau_collect_local
 
             
-            (duration_cur,sx,sy) = raystat.reductKeyPar(photon_N,
+            (duration_cur,sx,sy) = raystat.reduct_lv3(photon_N,
             r_vec_collect_local,k_vec_collect_local,
             t_collect,tau_collect_local,omega0,num_t_bins=85)
             

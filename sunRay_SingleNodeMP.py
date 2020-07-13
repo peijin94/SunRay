@@ -39,7 +39,7 @@ def run_par(eps_input, alpha_input,photon_N = 12000,
                 sphere_gen = False, num_thread =2 , early_cut= True,
                 dev_u= dev_u,save_npz=save_npz,data_dir=data_dir)
     
-    (duration_cur,sx,sy) = raystat.reductKeyPar(photon_N,
+    (duration_cur,sx,sy) = raystat.reduct_lv3(photon_N,
         r_vec_collect_local,k_vec_collect_local,
         t_collect,tau_collect_local,omega0,num_t_bins=60)
     

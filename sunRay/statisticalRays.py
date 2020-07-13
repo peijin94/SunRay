@@ -15,7 +15,15 @@ from scipy.optimize import curve_fit
 
 def collectXYtatR(photon_N,r_vec_collect_local,k_vec_collect_local,
             t_collect,tau_collect,omega0):
-    
+    """
+    Estimate the observed X,Y and intensity of the photons
+    Input : 
+        The simulation result from [SunRayRunAnisScat]
+    Output :
+        estimated x,y position [R_s]
+        time of arrival
+    """
+
     find_small_1e3 = lambda arr:  np.sort(arr)[int(photon_N*1e-3)]
 
     # collect the photons
@@ -261,13 +269,42 @@ def biGaussian(x,x0,sig1,sig2,A):
         (sig1*(x<x0)+sig2*(x>=x0)))**2)
 
 
+def reduct_lv1(photon_N,r_vec_collect_local,k_vec_collect_local,
+        t_collect,tau_collect_local,omega0,num_t_bins=60):
+    """
+    Reduct the simulation output to arrival shell, single time point
+        (level 1 data)
+    Input :
+        Variables from [SunRayRunAnisScat]
+    Output :
+        x,y,z kx,ky,kz,t  at the arrival shell 
+    """
+    pass
 
-def reductKeyPar(photon_N,r_vec_collect_local,k_vec_collect_local,
+def reduct_lv2(photon_N,r_vec_collect_local,k_vec_collect_local,
+        t_collect,tau_collect_local,omega0,num_t_bins=60):
+    """
+    Reduct the simulation output to arrival shell, single time point
+        (level 1 data)
+    Input :
+        Variables from [SunRayRunAnisScat]
+    Output :
+        X,Y estimate of the photon in sky map 
+    """
+    pass
+
+
+def reduct_lv3(photon_N,r_vec_collect_local,k_vec_collect_local,
         t_collect,tau_collect_local,omega0,num_t_bins=60):
     """
     Reduct the simulation output to very important parameters
+        (level 3 data)
     Input :
         Variables from [SunRayRunAnisScat]
+    
+    Output :
+        duration_cur : The duration of the time profile
+        sx,sy : The Full width half maximum of the source
     """
 
     (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat

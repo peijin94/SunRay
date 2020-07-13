@@ -354,7 +354,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             tau_collect_local = tau_collect_local)
 
 
-    return ( steps_N  ,  collect_N,  photon_N, start_r,  start_theta, start_phi,  f_ratio, 
+    return (steps_N  ,  collect_N,  photon_N, start_r,  start_theta, start_phi,  f_ratio, 
             epsilon ,  anis, asym,  omega0.cpu(), freq0.cpu(), t_collect.cpu(), tau.cpu(),
             r_vec_collect_local,  k_vec_collect_local,  tau_collect_local)
 

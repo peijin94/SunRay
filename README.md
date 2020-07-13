@@ -9,7 +9,7 @@ The major computational part is done with the help of PyTorch, which is known as
 Note: this is done with:  
     PyTorch==1.5.0  
     python>=3.8.3
-    ray (for parallelize)
+    mpi4py (for parallelize)
 
 ## Variables
 
@@ -39,6 +39,13 @@ For multiple GPU, try bash ```parallel``` or  python ```multiprocessing``` to pa
 ```bash
 cat params.input | parallel -j4 'CUDA_VISIBLE_DEVICES=$(({%} - 1)) python {} &> {#}.out'
 ```
+
+### Simulation output
+
+* Level 0 (lv0) x,y,z kx,ky,kz, t at sampled time points.
+* Level 1 (lv1) x,y,z kx,ky,kz at arrival shell (single time point)
+* Level 2 (lv2) im_x, im_y, tretraced and observed x,y position estimated
+* Level 3 (lv3) duration and source size
 
 ## Benchmark
 
