@@ -42,8 +42,8 @@ cat params.input | parallel -j4 'CUDA_VISIBLE_DEVICES=$(({%} - 1)) python {} &> 
 
 ### Simulation output
 
-* Level 0 (lv0) x,y,z kx,ky,kz, t at sampled time points.
-* Level 1 (lv1) x,y,z kx,ky,kz at arrival shell (single time point)
+* Level 0 (lv0) x,y,z kx,ky,kz, t at sampled time points. (huge in size but contains every thing, all information of all checkpoints)
+* Level 1 (lv1) x,y,z kx,ky,kz at arrival shell (single time point, recommended form)
 * Level 2 (lv2) im_x, im_y, tretraced and observed x,y position estimated
 * Level 3 (lv3) duration and source size
 

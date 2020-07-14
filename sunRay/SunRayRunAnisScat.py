@@ -22,7 +22,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
             sphere_gen = False, num_thread =4, early_cut= True ,dev_u = dev_u,
-            save_npz = False, data_dir='./datatmp/'):
+            save_npz = False, data_dir='./datatmp/',save_level=1):
     """
     name: runRays
     
@@ -48,6 +48,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         dev_u : device to use for the calculation
         save_npz [Bool] : whether to save the simulation result to file
         dir_npz : the directory for the npz data file 
+        save_level : reduct the data to a certain level then save
 
     results:
         The t k and r of the ray-tracing result
@@ -119,7 +120,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach())
 
     Exp_size = 1.25*30./(freq0/1e6)
-    dt0 = 0.01*Exp_size/c_r
+    dt0 = 0.02*Exp_size/c_r
     tau = torch.zeros(rr_cur.shape).to(dev_u)
 
 
@@ -131,7 +132,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         dt_nu0  = find_small_1e3(1/(nu_s0)) 
         dt_nue0  = 1/nu_e0
         steps_N = (1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 
-            12/c_r)*(1/dt_dr0+1.5/dt_nu0+1/dt_nue0+10)*(0.3+(anis*4)) +2048  #(0.1+(anis**0.5)) 
+            15/c_r)*(1/dt_dr0+1.5/dt_nu0+1/dt_nue0+25)*(0.3+(anis*4)) + 8192  #(0.1+(anis**0.5)) 
         if verb_out:
             print("Refraction dt : "+str(1/dt_dr0.cpu().numpy()))
             print("Scattering dt : "+str(1/dt_nu0.cpu().numpy()))
@@ -314,7 +315,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                     final_collect = idx_collect
                     
                     # cut
-                    t_collect = t_current[0:final_collect]
+                    t_collect = t_collect[0:final_collect]
+                    
                     r_vec_collect = r_vec_collect[0:final_collect,:,:] 
                     k_vec_collect = k_vec_collect[0:final_collect,:,:] 
                     tau_collect   = tau_collect[0:final_collect,:] 
@@ -341,17 +343,20 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     if save_npz:
          # save the data to npz file
-        np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
-            ']_[alpha'+str(np.round(anis,5))+'].npz', 
-            steps_N  = steps_N, 
-            collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
-            start_theta = start_theta, start_phi  = start_phi, 
-            f_ratio  = f_ratio, epsilon = epsilon , anis = anis, asym = asym,
-            omega0=omega0.cpu(), freq0=freq0.cpu(),
-            t_collect=t_collect.cpu(), tau=tau.cpu(),
-            r_vec_collect_local=r_vec_collect_local,
-            k_vec_collect_local=k_vec_collect_local,
-            tau_collect_local = tau_collect_local)
+        if save_level == 0:
+            np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
+                ']_[alpha'+str(np.round(anis,5))+'].npz', 
+                steps_N  = steps_N, 
+                collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
+                start_theta = start_theta, start_phi  = start_phi, 
+                f_ratio  = f_ratio, epsilon = epsilon , anis = anis, asym = asym,
+                omega0=omega0.cpu(), freq0=freq0.cpu(),
+                t_collect=t_collect.cpu(), tau=tau.cpu(),
+                r_vec_collect_local=r_vec_collect_local,
+                k_vec_collect_local=k_vec_collect_local,
+                tau_collect_local = tau_collect_local)
+
+            
 
 
     return (steps_N  ,  collect_N,  photon_N, start_r,  start_theta, start_phi,  f_ratio, 
