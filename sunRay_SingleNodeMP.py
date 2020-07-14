@@ -23,21 +23,21 @@ import multiprocessing as mp
 arr_eps   = np.linspace(0.03,0.5,30)
 arr_alpha = np.linspace(0.05,0.95,30)
 
-def run_par(eps_input, alpha_input,photon_N = 12000,
+def run_par(eps_input, alpha_input,photon_N = 500000,
         data_dir='./datatmp/',dev_u = dev_u,save_npz=True):
 
 
     (steps_N  ,  collect_N,  photon_N, start_r,  start_theta, 
             start_phi,  f_ratio, epsilon ,  anis, asym,  omega0, freq0, 
             t_collect, tau, r_vec_collect_local,  k_vec_collect_local,  tau_collect_local
-            ) = anisRay.runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, 
-                photon_N = photon_N, start_r = 1.75, start_theta = 1.e-6/180.0*np.pi,    
-                start_phi  = 1.e-6/180.0*np.pi, f_ratio  = 1.1, #ne_r = dm.parkerfit,    
+            ) = anisRay.runRays(steps_N  = -1 , collect_N = 400, t_param = 20.0, 
+                photon_N = photon_N, start_r = 1.75, start_theta = 1.e-10/180.0*np.pi,    
+                start_phi  = 1.e-10/180.0*np.pi, f_ratio  = 1.1, #ne_r = dm.parkerfit,    
                 epsilon = eps_input, anis = alpha_input,  asym = 1.0, Te = 86.0, 
                 Scat_include = True, Show_param = True,
                 Show_result_k = False, Show_result_r = False,  verb_out = False,
                 sphere_gen = False, num_thread =2 , early_cut= True,
-                dev_u= dev_u,save_npz=save_npz,data_dir=data_dir)
+                dev_u= dev_u,save_npz=save_npz,data_dir=data_dir,save_level=1)
     
     (duration_cur,sx,sy) = raystat.reduct_lv3(photon_N,
         r_vec_collect_local,k_vec_collect_local,

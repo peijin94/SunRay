@@ -9,6 +9,7 @@ from sunRay import scattering as scat
 from sunRay import showPlot as SP
 from sunRay.parameters import c,c_r,R_S  # physics parameters
 from sunRay.parameters import dev_u  # computation device
+import sunRay.statisticalRays as raystat
 import torch
 import time
 from tqdm import tqdm # for processing bar
@@ -355,6 +356,23 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 r_vec_collect_local=r_vec_collect_local,
                 k_vec_collect_local=k_vec_collect_local,
                 tau_collect_local = tau_collect_local)
+        if save_level == 1:
+
+            (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,tau_stat_avail,
+                r_vec_0, k_vec_0) =  raystat.reduct_lv1(
+                    photon_N,r_vec_collect_local,k_vec_collect_local,
+                    t_collect,tau_collect_local,omega0,num_t_bins=60)
+                    
+            np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
+                ']_[alpha'+str(np.round(anis,5))+'].lv1.npz', 
+                steps_N  = steps_N, 
+                collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
+                start_theta = start_theta, start_phi  = start_phi, 
+                f_ratio  = f_ratio, epsilon = epsilon , anis = anis, asym = asym,
+                omega0=omega0.cpu(), freq0=freq0.cpu(),
+                r_vec_stat_avail=r_vec_stat_avail,k_vec_stat_avail=k_vec_stat_avail,
+                t_reach_stat_avail=t_reach_stat_avail,
+                tau_stat_avail=tau_stat_avail,r_vec_0=r_vec_0, k_vec_0=k_vec_0)
 
             
 
