@@ -1,0 +1,9 @@
+### dependency
+# conda install pytorch==1.5.0 torchvision cpuonly -c pytorch
+
+pytorch==1.5.0
+torchvision
+mpi4py
+scipy
+tqdm
+matplotlib
