@@ -7,3 +7,4 @@ mpi4py
 scipy
 tqdm
 matplotlib
+numba

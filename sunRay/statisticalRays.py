@@ -352,3 +352,23 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.005,num_t_bins=
 
     return (t_bin_center,flux_all,xc_all,yc_all,
         sx_all,sy_all,err_xc_all,err_yc_all,err_sx_all,err_sy_all)
+
+
+def rotateCoordKX(r_vec,k_vec,rot_a=30/180*pi):
+    """
+        Rotate the result along z-axes
+    
+        Input vars:
+            k_vec, r_vec, and rotate angle (in rad)
+    """
+    # copy to make sure same size
+    r_vec_new = r_vec
+    k_vec_new = k_vec
+
+    r_vec_new[0,:] = r_vec[0,:]*np.cos(rot_a) - r_vec[1,:]*np.sin(rot_a)
+    r_vec_new[0,:] = r_vec[0,:]*np.sin(rot_a) + r_vec[1,:]*np.cos(rot_a)
+
+    k_vec_new[0,:] = k_vec[0,:]*np.cos(rot_a) - k_vec[1,:]*np.sin(rot_a)
+    k_vec_new[0,:] = k_vec[0,:]*np.sin(rot_a) + k_vec[1,:]*np.cos(rot_a)
+
+    return (r_vec_new,k_vec_new)
