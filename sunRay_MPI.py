@@ -59,6 +59,7 @@ def sunrayMPI(arr_eps,arr_alpha,dev_u,photon_N = 200000,
     work_content = [job_content[x] for x in this_worker_job ]
 
     for a_piece_of_work in work_content:
+        print('==============')
         anisRay.runRays(steps_N  = -1 , collect_N = 360, t_param = 20.0, 
                 photon_N = photon_N, start_r = 1.75, start_theta = 1.e-6/180.0*np.pi,    
                 start_phi  = 1.e-6/180.0*np.pi, f_ratio  = 1.1, #ne_r = dm.parkerfit,    

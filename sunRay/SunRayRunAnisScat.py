@@ -6,7 +6,7 @@ import numpy as np
 from sunRay import plasmaFreq as pfreq
 from sunRay import densityModel as dm
 from sunRay import scattering as scat 
-from sunRay import showPlot as SP
+#from sunRay import showPlot as SP   # matplotlib will slow down the run
 from sunRay.parameters import c,c_r,R_S  # physics parameters
 from sunRay.parameters import dev_u  # computation device
 import sunRay.statisticalRays as raystat
@@ -85,8 +85,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     omega0 = freq0*(2*PI)
     nu_s0 = scat.nuScattering(rr,omega0,epsilon,ne_r)
 
-    if Show_param:
-        SP.showParameters(ne_r,omega0,epsilon)  
+    #if Show_param:
+    #    SP.showParameters(ne_r,omega0,epsilon)  
 
     # wave-vector of the photons
     kc0 = torch.sqrt(omega0**2. - pfreq.omega_pe_r(ne_r,rr)**2.)
@@ -339,8 +339,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     #plt.plot( r_vec_collect_local[:,0,0], r_vec_collect_local[:,1,0])
     print('Traced final t : '+str(t_collect_local[-1])+' s')
 
-    if Show_result_r:
-        SP.showResultR(r_vec_collect_local)
+    #if Show_result_r:
+    #    SP.showResultR(r_vec_collect_local)
 
     if save_npz:
          # save the data to npz file
