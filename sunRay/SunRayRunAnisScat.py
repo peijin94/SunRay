@@ -23,7 +23,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
             sphere_gen = False, num_thread =4, early_cut= True ,dev_u = dev_u,
-            save_npz = False, data_dir='./datatmp/',save_level=1):
+            save_npz = False, data_dir='./datatmp/',save_level=1,ignore_down=True,
+            Absorb_include=True):
     """
     name: runRays
     
@@ -50,6 +51,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         save_npz [Bool] : whether to save the simulation result to file
         dir_npz : the directory for the npz data file 
         save_level : reduct the data to a certain level then save
+        ignore_down: ignore the downward wave
 
     results:
         The t k and r of the ray-tracing result
@@ -107,7 +109,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         k_vec = kc0 * k_vec_tmp/torch.sqrt(torch.sum(k_vec_tmp.pow(2),axis=0))
         # ignore downward (r k not same direction)
         idx_select = torch.nonzero(torch.sum(r_vec*k_vec,axis=0)<0,as_tuple=False)
-        k_vec[:,idx_select] = -k_vec[:,idx_select] 
+        if ignore_down:
+            k_vec[:,idx_select] = -k_vec[:,idx_select] 
 
     r_vec_start = r_vec
     k_vec_start = k_vec
@@ -199,7 +202,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             # random vec for wave scattering  # [3*N] normal distribution
             W_vec = torch.randn(r_vec.shape,device=dev_u) * torch.sqrt(dt) 
             #W_vec = torch.randn(r_vec.shape).to(dev_u) * torch.sqrt(dt)   # slow
-            Wx,Wy,Wz = W_vec[0,:],W_vec[1,:],W_vec[2,:]
+            Wx,Wy,Wz = W_vec[2,:],W_vec[1,:],W_vec[0,:]
 
             # photon position in spherical coordinates
             # (rx,ry,rz) is the direction of anisotropic tubulence
@@ -277,7 +280,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             # 6.908 -> I=1e-3
             # 4.605 -> I=1e-2
             # remove every 128 steps
-            if (idx_step%128==0) :
+            if (idx_step%128==0) and Absorb_include:
                 idx_absorb = torch.nonzero(tau>6.908,as_tuple=False)
                 r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
                 k_vec[:,idx_absorb] = k_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
@@ -289,11 +292,11 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 idx_absorb2 = torch.nonzero( ((torch.sum(r_vec*k_vec,axis=0)/(rr_cur*kc_cur))<0.01) & 
                                             (rr_cur < find_small_1e3(rr_cur)),
                                             as_tuple=False)
-                r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
-                k_vec[:,idx_absorb] = k_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
-                rr_cur[idx_absorb] =  rr_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
-                kc_cur[idx_absorb] =  kc_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
-                tau[idx_absorb] = tau[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
+                r_vec[:,idx_absorb2] = r_vec[:,idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
+                k_vec[:,idx_absorb2] = k_vec[:,idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
+                rr_cur[idx_absorb2] =  rr_cur[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
+                kc_cur[idx_absorb2] =  kc_cur[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u)
+                tau[idx_absorb2] = tau[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u)
                 
 
         t_current = t_current + dt
