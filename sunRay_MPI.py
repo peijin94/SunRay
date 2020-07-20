@@ -17,7 +17,7 @@ import sunRay.SunRayRunAnisScat as anisRay
 import sunRay.statisticalRays as raystat
 
 
-def sunrayMPI(arr_eps,arr_alpha,dev_u,photon_N = 200000,
+def sunrayMPI(arr_eps,arr_alpha,dev_u, collect_N = 360, t_param = 20.0,photon_N = 200000,
         data_dir='./datatmp/funda',save_npz=True, start_r = 1.75, 
                 start_theta = 1.e-6/180.0*np.pi, start_phi  = 1.e-6/180.0*np.pi, f_ratio  = 1.1,  
                 asym = 1.0, Te = 86.0,  Scat_include = True, Show_param = True,
@@ -60,14 +60,14 @@ def sunrayMPI(arr_eps,arr_alpha,dev_u,photon_N = 200000,
 
     for a_piece_of_work in work_content:
         print('==============')
-        anisRay.runRays(steps_N  = -1 , collect_N = 360, t_param = 20.0, 
-                photon_N = photon_N, start_r = 1.75, start_theta = 1.e-6/180.0*np.pi,    
-                start_phi  = 1.e-6/180.0*np.pi, f_ratio  = 1.1, #ne_r = dm.parkerfit,    
-                epsilon = a_piece_of_work[0], anis = a_piece_of_work[1],  asym = 1.0, Te = 86.0, 
-                Scat_include = True, Show_param = True,
-                Show_result_k = False, Show_result_r = False,  verb_out = False,
-                sphere_gen = False, num_thread =2 , early_cut= True,
-                dev_u= dev_u,save_npz=save_npz,data_dir=data_dir,save_level=1)
+        anisRay.runRays(steps_N  = -1 , collect_N = collect_N, t_param = t_param, 
+                photon_N = photon_N, start_r = start_r, start_theta = start_theta,    
+                start_phi  = start_phi, f_ratio  = f_ratio, #ne_r = dm.parkerfit,    
+                epsilon = a_piece_of_work[0], anis = a_piece_of_work[1],  asym = asym, Te = Te, 
+                Scat_include = Scat_include, Show_param = Show_param,
+                Show_result_k = Show_result_k, Show_result_r = Show_result_r,  verb_out = verb_out,
+                sphere_gen = sphere_gen, num_thread =num_thread , early_cut= early_cut,
+                dev_u= dev_u,save_npz=save_npz,data_dir=data_dir,save_level=save_level)
 
         print("[Info] : parameter",[np.round(x,5) for x in  a_piece_of_work])
         
