@@ -167,8 +167,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         nu_s = scat.nuScattering(rr_cur,omega,epsilon,ne_r)
         nu_s = nu_s*(nu_s<nu_s0)+nu_s0*(~(nu_s<nu_s0)) # use the smaller nu_s
 
-        # compare the diff of the CPU and GPU
-
+        # detach is essential for remove the previous calc map
         domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach())
         domega_pe_dr = torch.sqrt(torch.sum(domega_pe_dxyz.pow(2),axis=0))
 
@@ -200,13 +199,13 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             g0 = torch.sqrt(nu_s*kc_cur**2)
 
             # random vec for wave scattering  # [3*N] normal distribution
-            W_vec = torch.randn(r_vec.shape,device=dev_u) * torch.sqrt(dt) 
+            W_vec = -torch.randn(r_vec.shape,device=dev_u) * torch.sqrt(dt) 
             #W_vec = torch.randn(r_vec.shape).to(dev_u) * torch.sqrt(dt)   # slow
             Wx,Wy,Wz = W_vec[2,:],W_vec[1,:],W_vec[0,:]
 
             # photon position in spherical coordinates
             # (rx,ry,rz) is the direction of anisotropic tubulence
-            fi = torch.atan(ry_cur/rx_cur)
+            fi = torch.atan2(ry_cur,rx_cur)
             costheta = rz_cur/rr_cur
             sintheta = torch.sqrt(1-costheta**2)
             if Scat_include:

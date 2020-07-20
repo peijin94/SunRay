@@ -117,7 +117,7 @@ def XYDistributionImage(ax_main,x,y,weights_data,bins_data):
 
     (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(x,y,weights_data)
 
-    ax_main.plot(xc+sx*np.cos(np.linspace(0,2*np.pi)),yc+sy*np.sin(np.linspace(0,2*np.pi)),color='C9')
+    ax_main.plot(xc+sx/2*np.cos(np.linspace(0,2*np.pi)),yc+sy/2*np.sin(np.linspace(0,2*np.pi)),color='C9')
     ax_main.plot(np.sin(np.linspace(0,2*np.pi)),np.cos(np.linspace(0,2*np.pi)),'k-')
 
     # now determine nice limits by hand:
