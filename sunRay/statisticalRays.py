@@ -51,7 +51,15 @@ def FWHM(x, y):
     zero_crossings = (signs[0:-2] != signs[1:-1])
     zero_crossings_i = np.where(zero_crossings)[0]
     return [lin_interp(x, y, zero_crossings_i[0], half),
-            lin_interp(x, y, zero_crossings_i[1], half)]
+            lin_interp(x, y, zero_crossings_i[-1], half)]
+
+
+def DecayExpTime(x,y):
+    thresh = np.max(y)/np.exp(1)
+    signs = np.sign(np.add(y, -thresh))
+    zero_crossings = (signs[0:-2] != signs[1:-1])
+    zero_crossings_i = np.where(zero_crossings)[0]
+    return [x[np.argmax(y)], lin_interp(x, y, zero_crossings_i[-1], thresh) ]
 
 
 def fit_biGaussian(x,y):
