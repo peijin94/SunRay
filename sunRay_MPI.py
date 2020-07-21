@@ -19,7 +19,7 @@ import sunRay.statisticalRays as raystat
 
 def sunrayMPI(arr_eps,arr_alpha,dev_u, collect_N = 360, t_param = 20.0,photon_N = 200000,
         data_dir='./datatmp/funda',save_npz=True, start_r = 1.75, 
-                start_theta = 1.e-6/180.0*np.pi, start_phi  = 1.e-6/180.0*np.pi, f_ratio  = 1.1,  
+                start_theta = 0/180.0*np.pi, start_phi  = 0/180.0*np.pi, f_ratio  = 1.1,  
                 asym = 1.0, Te = 86.0,  Scat_include = True, Show_param = True,
                 Show_result_k = False, Show_result_r = False,  verb_out = False,
                 sphere_gen = False, num_thread =2 , early_cut= True, save_level=1):

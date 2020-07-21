@@ -18,7 +18,7 @@ from tqdm import tqdm # for processing bar
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough
 
 def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
-            start_r = 1.75, start_theta = 20/180.0*np.pi,    start_phi  = 0/180.0*np.pi,
+            start_r = 1.75, start_theta = 0/180.0*np.pi,    start_phi  = 0/180.0*np.pi,
             f_ratio  = 1.1, ne_r = dm.parkerfit,    epsilon = 0.4, anis = 0.2,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
