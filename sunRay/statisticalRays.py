@@ -66,7 +66,7 @@ def fit_biGaussian(x,y):
     """
     Derive the best fit curve for the flux-time distribution
     """
-    popt, pcov = curve_fit(biGaussian,x,y,p0=(np.mean(x),0.2,1.,1.))
+    popt, pcov = curve_fit(biGaussian,x,y,p0=(np.mean(x),np.std(x)/2,np.std(x),1),bounds=([-np.inf,0,0,0],[np.inf,1e4,1e4,np.inf]))
     return popt
 
 

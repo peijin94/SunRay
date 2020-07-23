@@ -140,9 +140,24 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     #    FWHM_range=[np.nan,np.nan]
 
     #------------- use the fitted FWHM
-    fit_res = raystat.fit_biGaussian(t_bin_center,flux_all)
-    fitted_flux = raystat.biGaussian(t_bin_center,*fit_res)
-
+    #fit_res = raystat.fit_biGaussian(t_bin_center,flux_all)
+    #fitted_flux = raystat.biGaussian(t_bin_center,*fit_res)
+    
+    
+    fit_done=True
+    try:
+        fit_res = raystat.fit_biGaussian(t_bin_center,flux_all)
+        fitted_flux = raystat.biGaussian(t_bin_center,*fit_res)
+        FWHM_range = raystat.DecayExpTime(t_bin_center,fitted_flux)
+    except:
+        print('fit fail')
+        fit_done=False
+        try:
+            FWHM_range = raystat.DecayExpTime(t_bin_center,flux_all)
+        except:
+            FWHM_range = [0,0]
+    
+    
     FWHM_range = raystat.FWHM(t_bin_center,flux_all)
 
     print(FWHM_range[1]-FWHM_range[0])
@@ -152,7 +167,8 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     # flux data
     ax_t.step(t_bin_center,flux_all/np.max(flux_all),where='mid',color='k')
     # fitted data
-    ax_t.plot(t_bin_center,fitted_flux/np.max(fitted_flux),color='C9')
+    if fit_done:
+        ax_t.plot(t_bin_center,fitted_flux/np.max(fitted_flux),color='C9')
     ax_t.set_ylabel('Normalized')
     ax_t.tick_params(direction='in', labelbottom=False)
     ax_t.set_ylim([0,1.1])
