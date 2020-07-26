@@ -8,13 +8,20 @@ import sunRay.statisticalRays as raystat
 
 import torch
 
+
+from matplotlib import rc
+#rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+## for Palatino and other serif fonts use:
+#rc('font',**{'family':'serif','serif':['Palatino']})
+rc('text', usetex=True)
+
 def showParameters(Ne_r,omega,epsilon):
     rr = torch.linspace(3,100,300).to(dev_u)
     ne = Ne_r(rr)
     fig = plt.figure(1)
     ax = plt.gca()
     ax.plot(rr.cpu(),ne.cpu())
-    ax.set_xlabel('Heliocentric distance [Rs]')
+    ax.set_xlabel('Heliocentric distance [$R_s$]')
     ax.set_ylabel('Electron Density [cm-3}]')
     ax.set_yscale('log')
 
@@ -68,7 +75,7 @@ def XYDistributionImageHist(x_data,y_data,weights_data=1,
     rect_histy = [left + width + spacing, bottom, 0.2, height]
 
     # start with a rectangular Figure
-    plt.figure(figsize=(5, 5))
+    plt.figure(figsize=(4, 4))
 
     ax_main = plt.axes(rect_scatter)
 
@@ -85,10 +92,10 @@ def XYDistributionImageHist(x_data,y_data,weights_data=1,
     ax_histy.hist(y, bins=bins_data,weights=weights_data,orientation='horizontal'
                 , alpha=0.5, density=True,histtype='stepfilled',edgecolor='b',color='b',linewidth=1.5)
 
-    ax_histx.text(0.04, 0.8,'X', fontsize=18,
+    ax_histx.text(0.04, 0.8,'X', fontsize=14,
         horizontalalignment='center',  verticalalignment='center',
         transform = ax_histx.transAxes)
-    ax_histy.text(0.86, 0.94,'Y', fontsize=18,
+    ax_histy.text(0.86, 0.94,'Y', fontsize=14,
         horizontalalignment='center',  verticalalignment='center',
         transform = ax_histy.transAxes)
 
@@ -125,11 +132,42 @@ def XYDistributionImage(ax_main,x,y,weights_data,bins_data):
     ax_main.set_ylim([np.min(yy),np.max(yy)])
 
 
+    
+def MuVariationPlot(k_vec_stat_avail,t_reach_stat_avail,weights_avial,t_step = 0.005,
+                    num_t_bins=-1,num_mu_bins=100):
+    
+    
+    frameratio = 0.75
+    fig = plt.figure(figsize=(4.3, 4.3/1.5))
+    ax_t = plt.axes([0.12,0.16,0.7/frameratio/1.5,0.7])
+    
+    (t_bin_center, mu_var_all) = raystat.VariationMu(k_vec_stat_avail,t_reach_stat_avail,
+                                     weights_avial,t_step = t_step,
+                                    num_t_bins=num_t_bins,num_mu_bins=num_mu_bins)
+    
+    
+    ax_t.imshow(mu_var_all.T, origin='lower',extent=[np.min(t_bin_center),np.max(t_bin_center),0,1], 
+                aspect = (np.max(t_bin_center)-np.min(t_bin_center))*frameratio )
+    
+    ax_t.set_xlabel('Time [s]')
+    ax_t.set_ylabel("$\mu$")
+    
+    mu_all = k_vec_stat_avail[2,:]/np.sqrt(np.sum(k_vec_stat_avail**2,axis=0))
+    
+    ax_col = plt.axes([0.12+0.7/frameratio/1.5,0.16,0.22,0.7])
+    ax_col.hist(mu_all, bins=np.linspace(0,1,num_mu_bins+1),weights=weights_avial,orientation='horizontal'
+                , alpha=0.5, density=True,histtype='stepfilled',edgecolor='C2',color='C2',linewidth=1.5)
+    ax_col.set_ylim([0,1])
+    ax_col.set_yticks([])
+    ax_col.set_title('Accumulated')
+    return [fig,ax_t,ax_col]
+
 
 def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-1):
 
     (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
-        err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_data,y_data,t_data,weights_data,t_step,num_t_bins)
+        err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_data,y_data,
+                    t_data,weights_data,t_step,num_t_bins)
 
     (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(x_data,y_data,weights_data)
     
@@ -162,7 +200,7 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
 
     print(FWHM_range[1]-FWHM_range[0])
 
-    plt.figure(figsize=(4.5, 6))
+    plt.figure(figsize=(5*0.75, 5))
     ax_t = plt.axes([0.1,0.65,0.8,0.3])
     # flux data
     ax_t.step(t_bin_center,flux_all/np.max(flux_all),where='mid',color='k')
@@ -178,7 +216,7 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     l1=ax_XY.errorbar(t_bin_center,xc_all,err_xc_all,color='r',drawstyle='steps-mid',capsize=1,elinewidth=0.2)
     l2=ax_XY.errorbar(t_bin_center,yc_all,err_yc_all,color='b',drawstyle='steps-mid',capsize=1,elinewidth=0.2)
     ax_XY.tick_params(direction='in', labelbottom=False)
-    ax_XY.set_ylabel("X,Y Position [R_s]")
+    ax_XY.set_ylabel(r"X,Y Position ($R_s$)")
     ax_XY.plot([t_bin_center[0],t_bin_center[-1]],[xc,xc],'r--',linewidth=0.6)
     ax_XY.plot([t_bin_center[0],t_bin_center[-1]],[yc,yc],'b--',linewidth=0.6)
     ax_FWHM = plt.axes([0.1,0.05,0.8,0.3])
@@ -189,7 +227,7 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     ax_FWHM.plot([t_bin_center[0],t_bin_center[-1]],[sx,sx],'r--',linewidth=0.6)
     ax_FWHM.plot([t_bin_center[0],t_bin_center[-1]],[sy,sy],'b--',linewidth=0.6)
     ax_FWHM.set_xlabel('Time [s]')
-    ax_FWHM.set_ylabel("X,Y FWHM [R_s]")
+    ax_FWHM.set_ylabel(r"X,Y FWHM ($R_s$)")
     ax_t.legend((l1,l2),("X","Y"))
 
     ax_t.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')

@@ -297,7 +297,8 @@ def reduct_lv3(photon_N,r_vec_collect_local,k_vec_collect_local,
     return (duration_cur,sx,sy)
 
 
-def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.005,num_t_bins=-1):
+def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.005,
+                    num_t_bins=-1):
     """
         The variation of the XY positions with a [t_step] cadence
         
@@ -314,7 +315,7 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.005,num_t_bins=
     weights_stat = weights_data
 
     lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.2
-    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.15))]+0.2
+    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.1))]+0.2
 
     if num_t_bins<0:
         num_t_bins = int((upper_t_lim-lower_t_lim)/t_step)
@@ -354,12 +355,50 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.005,num_t_bins=
                 ) = centroidXYFWHM(x_im_in_t_range,y_im_in_t_range,weights_in_t_range)
             flux_all[idx_cur] = np.sum(weights_in_t_range*np.ones(x_im_in_t_range.shape))
             #flux_all[idx_cur] = np.sum(1.0*np.ones(x_im_in_t_range.shape))
-        
 
         idx_cur = idx_cur + 1
 
     return (t_bin_center,flux_all,xc_all,yc_all,
         sx_all,sy_all,err_xc_all,err_yc_all,err_sx_all,err_sy_all)
+
+
+def VariationMu(k_vec_stat_avail,t_reach_stat_avail,weights_avial,t_step = 0.005,
+                    num_t_bins=-1,num_mu_bins=100):
+
+    t_reach_1au_stat = t_reach_stat_avail
+    weights_stat = weights_avial
+
+    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.2
+    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.1))]+0.2
+
+    if num_t_bins<0:
+        num_t_bins = int((upper_t_lim-lower_t_lim)/t_step)
+
+    t_bins = np.linspace(lower_t_lim,upper_t_lim,num_t_bins)
+    t_bin_center = (t_bins[0:-1]+t_bins[1:])/2
+    mu_var_all = np.zeros([t_bin_center.shape[0],num_mu_bins])
+
+    idx_cur = 0
+    for idx_t_bin in np.arange(len(t_bin_center)):
+
+        idx_in_t_range = np.where((t_reach_1au_stat>t_bins[idx_t_bin]) 
+                                & (t_reach_1au_stat<t_bins[idx_t_bin+1]))
+
+        if True:#(idx_in_t_range[0].shape[0])>2:
+            
+            k_vec_in_t_range = k_vec_stat_avail[:,idx_in_t_range]
+            weights_in_t_range = weights_stat[idx_in_t_range]
+            #print(weights_in_t_range)
+            
+            mu = k_vec_in_t_range[2,:]/np.sqrt(np.sum(k_vec_in_t_range**2,axis=0))
+            hst =  np.histogram(mu.reshape(-1), weights=weights_in_t_range.reshape(-1), 
+                                bins=np.linspace(0,1,num_mu_bins+1))[0]
+            
+            mu_var_all[idx_cur] = hst
+        idx_cur = idx_cur + 1
+
+    return (t_bin_center,mu_var_all)
+    
 
 
 def rotateCoordKX(r_vec,k_vec,rot_a=30/180*np.pi):
