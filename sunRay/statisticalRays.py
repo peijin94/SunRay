@@ -66,7 +66,7 @@ def fit_biGaussian(x,y):
     """
     Derive the best fit curve for the flux-time distribution
     """
-    popt, pcov = curve_fit(biGaussian,x,y,p0=(np.mean(x),np.std(x)/2,np.std(x),1),bounds=([-np.inf,0,0,0],[np.inf,1e4,1e4,np.inf]))
+    popt, pcov = curve_fit(biGaussian,x,y,p0=(x[np.argmax(y)],np.std(x)/3,np.std(x),1),bounds=([-np.inf,-1e-5,-1e-5,0],[np.inf,np.inf,np.inf,np.inf]))
     return popt
 
 
@@ -361,7 +361,64 @@ def variationXYFWHM(x_data,y_data,t_data,weights_data,t_step = 0.005,
     return (t_bin_center,flux_all,xc_all,yc_all,
         sx_all,sy_all,err_xc_all,err_yc_all,err_sx_all,err_sy_all)
 
+def OffsetSpeed(t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,
+                err_xc_all,err_yc_all,err_sx_all,err_sy_all,
+                x0_all=0,y0_all=0,offset=True):
 
+    try:
+        fit_res = fit_biGaussian(t_bin_center,flux_all)
+        fitted_flux = biGaussian(t_bin_center,*fit_res)
+        #FWHM_range = DecayExpTime(t_bin_center,fitted_flux)
+        FWHM_peak = DecayExpTime(t_bin_center,fitted_flux)[0]
+        FWHM_range = FWHM(t_bin_center,fitted_flux)
+    except:
+        print('fit fail')
+        fit_done=False
+        try:
+            FWHM_range =FWHM(t_bin_center,flux_all)
+            FWHM_peak = DecayExpTime(t_bin_center,flux_all)[0]
+        except:
+            return []
+        
+    if offset:
+        xc_all = xc_all - x0_all
+        yc_all = yc_all - y0_all    
+            
+    a_phase_idx = np.where((t_bin_center>FWHM_range[0]) 
+                                & (t_bin_center<FWHM_peak))
+    b_phase_idx = np.where((t_bin_center>FWHM_peak) 
+                                & (t_bin_center<FWHM_range[1]))
+    
+    t_bin_a = t_bin_center[a_phase_idx]
+    t_bin_b = t_bin_center[b_phase_idx]
+    
+    xc_a = xc_all[a_phase_idx]
+    xc_b = xc_all[b_phase_idx]
+    
+    yc_a = yc_all[a_phase_idx]
+    yc_b = yc_all[b_phase_idx]
+    
+    sy_a = sy_all[a_phase_idx]
+    sy_b = sy_all[b_phase_idx]
+    
+    sx_a = sx_all[a_phase_idx]
+    sx_b = sx_all[b_phase_idx]
+    
+    pfit_xc_a = np.polyfit(t_bin_a,xc_a,1)
+    pfit_xc_b = np.polyfit(t_bin_b,xc_b,1)
+    pfit_yc_a = np.polyfit(t_bin_a,yc_a,1)
+    pfit_yc_b = np.polyfit(t_bin_b,yc_b,1)
+    
+    pfit_sx_a = np.polyfit(t_bin_a,sx_a,1)
+    pfit_sx_b = np.polyfit(t_bin_b,sx_b,1)
+    pfit_sy_a = np.polyfit(t_bin_a,sy_a,1)
+    pfit_sy_b = np.polyfit(t_bin_b,sy_b,1)
+    
+    FWHM_ab= np.array([FWHM_range[0],FWHM_peak,FWHM_range[1]])
+    return (FWHM_ab,
+            pfit_xc_a,pfit_xc_b,pfit_yc_a,pfit_yc_b,
+            pfit_sx_a,pfit_sx_b,pfit_sy_a,pfit_sy_b)
+    
 def VariationMu(k_vec_stat_avail,t_reach_stat_avail,weights_avial,t_step = 0.005,
                     num_t_bins=-1,num_mu_bins=100):
 
