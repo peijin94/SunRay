@@ -63,7 +63,7 @@ def run_reduction_lv0(arr_eps, arr_alpha,data_dir='./datatmp/'):
     return (res_arr_tFWHM,res_arr_sizex,res_arr_sizey)
 
 
-def reduct_single_lv1(eps_cur,alpha_cur,data_dir='../funda/'):
+def reduct_single_lv1(eps_cur,alpha_cur,data_dir='../funda/',ang_rot=0):
     
             print('Proc : '+'   file:'+
                 data_dir+'RUN_[eps'+str(np.round(eps_cur,5)) +
@@ -92,17 +92,45 @@ def reduct_single_lv1(eps_cur,alpha_cur,data_dir='../funda/'):
             t_reach_stat_avail  = data_set.f.t_reach_stat_avail
             tau_stat_avail  = data_set.f.tau_stat_avail
 
-            
+            r_vec_rot,k_vec_rot = raystat.rotateCoordKX(
+                r_vec_stat_avail,k_vec_stat_avail,-ang_rot*np.pi/180)
+            r_vec0_rot,k_vec0_rot = raystat.rotateCoordKX(
+                r_vec_0,k_vec_0,-ang_rot*np.pi/180)
+
             (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat
-                )=raystat.ImgXYtEstimate(r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,
-                tau_stat_avail,r_vec_0, k_vec_0,num_t_bins=150)
+                )=raystat.ImgXYtEstimate(r_vec_rot,k_vec_rot,t_reach_stat_avail,
+                        tau_stat_avail,r_vec0_rot, k_vec0_rot,num_t_bins=150)
+
+            x_0,y_0=np.mean(r_vec0_rot,axis=1)[0:2]
             
             (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(
                 x_im_stat,y_im_stat,weights_stat)
 
-            (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
-                err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_im_stat,y_im_stat,
-                t_reach_1au_stat,weights_stat,num_t_bins=150)
+            try:
+                (t_bin_center,flux_all,xc_all,yc_all,sx_all,
+                    sy_all,err_xc_all,err_yc_all,
+                    err_sx_all,err_sy_all
+                    ) = raystat.variationXYFWHM(x_im_stat,y_im_stat,
+                    t_reach_1au_stat,weights_stat,num_t_bins=160)
+
+                (FWHM_ab,
+                pfit_xc_a,pfit_xc_b,pfit_yc_a,pfit_yc_b,
+                pfit_sx_a,pfit_sx_b,pfit_sy_a,pfit_sy_b,offset_xa,
+                offset_xb,offset_ya,offset_yb,
+                  pfit_xc_fwhm,pfit_yc_fwhm,
+                  pfit_sx_fwhm,pfit_sy_fwhm,offset_x_fwhm,offset_y_fwhm
+                    )=raystat.OffsetSpeedPhase(t_bin_center,flux_all,
+                    xc_all,yc_all,sx_all,sy_all,
+                    err_xc_all,err_yc_all,err_sx_all,err_sy_all,
+                    x0_all=x_0,y0_all=y_0,offset=True)
+            except:
+                FWHM_ab=[np.nan]*3
+                offset_xa,offset_xb,offset_ya,offset_yb=[np.nan]*4
+                (pfit_xc_a,pfit_xc_b,pfit_yc_a,pfit_yc_b,
+                pfit_sx_a,pfit_sx_b,pfit_sy_a,pfit_sy_b,
+                  pfit_xc_fwhm,pfit_yc_fwhm,
+                  pfit_sx_fwhm,pfit_sy_fwhm)=[[np.nan,np.nan]]*12
+                
 
             #try:
             #    fit_res = raystat.fit_biGaussian(t_bin_center,flux_all)
@@ -118,15 +146,17 @@ def reduct_single_lv1(eps_cur,alpha_cur,data_dir='../funda/'):
             try:
                     FWHM_range = raystat.DecayExpTime(t_bin_center,flux_all)
             except:
-                    FWHM_range = [0,0]
+                    FWHM_range = [np.nan,np.nan]
                     print('[Warning] FWHM not true')
 
             duration_cur  =  FWHM_range[1]-FWHM_range[0]
             
-            return (duration_cur,sx,sy)
+            return (duration_cur,sx,sy,xc-x_0,yc-y_0,pfit_xc_fwhm[0],pfit_yc_fwhm[0],
+                   pfit_sx_fwhm[0],pfit_sy_fwhm[0],offset_xa,offset_xb,offset_ya,offset_yb,
+                    np.float32(FWHM_ab[1]-FWHM_ab[0]), np.float32(FWHM_ab[2]-FWHM_ab[1]))
 
 
-def run_reduction_lv1(arr_eps,arr_alpha,data_dir):
+def run_reduction_lv1(arr_eps,arr_alpha,data_dir,ang_rot=0):
     """
     reduct level 1 data
     """
@@ -147,20 +177,29 @@ def run_reduction_lv1(arr_eps,arr_alpha,data_dir):
 
     return (res_arr_tFWHM,res_arr_sizex,res_arr_sizey)
 
-
-
-
-def run_reduction_lv1_parallel(arr_eps,arr_alpha,data_dir,num_process=72):
+def run_reduction_lv1_parallel(arr_eps,arr_alpha,data_dir,
+                               num_process=56,ang_rot=0):
     """
     reduct level 1 data
     """
     def run_single_proc_cur(eps_var,alpha_var):
         return reduct_single_lv1(eps_var,alpha_var,data_dir)
     
-    
     res_arr_tFWHM = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
     res_arr_sizex = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
     res_arr_sizey = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_offset_x = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_offset_y = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_vx = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_vy = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_ERx = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_ERy = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_offset_xa = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_offset_xb = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_offset_ya = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_offset_yb = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_tFWHM_a = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_tFWHM_b = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
     
     pool = mp.Pool(processes=num_process)
     
@@ -168,7 +207,7 @@ def run_reduction_lv1_parallel(arr_eps,arr_alpha,data_dir,num_process=72):
     for eps_cur in arr_eps:
         # parallel calc 
         args_input = [(eps_cur,alpha_cur) for alpha_cur in arr_alpha ]
-        results = pool.starmap( partial(reduct_single_lv1,data_dir=data_dir) , args_input)
+        results = pool.starmap( partial(reduct_single_lv1,data_dir=data_dir,ang_rot=ang_rot) , args_input)
         # collect the results one by one
         idx_alpha=0
         for res_tuple in results:
@@ -176,14 +215,28 @@ def run_reduction_lv1_parallel(arr_eps,arr_alpha,data_dir,num_process=72):
             res_arr_tFWHM[idx_eps,idx_alpha] = res_tuple[0]
             res_arr_sizex[idx_eps,idx_alpha] = res_tuple[1]
             res_arr_sizey[idx_eps,idx_alpha] = res_tuple[2]
+            res_arr_offset_x[idx_eps,idx_alpha] = res_tuple[3]
+            res_arr_offset_y[idx_eps,idx_alpha] = res_tuple[4]
+            res_arr_vx[idx_eps,idx_alpha] = res_tuple[5]
+            res_arr_vy[idx_eps,idx_alpha] = res_tuple[6]
+            res_arr_ERx[idx_eps,idx_alpha] = res_tuple[7]
+            res_arr_ERy[idx_eps,idx_alpha] = res_tuple[8]
+            res_arr_offset_xa[idx_eps,idx_alpha] = res_tuple[9]
+            res_arr_offset_xb[idx_eps,idx_alpha] = res_tuple[10]
+            res_arr_offset_ya[idx_eps,idx_alpha] = res_tuple[11]
+            res_arr_offset_yb[idx_eps,idx_alpha] = res_tuple[12]
+            res_arr_tFWHM_a[idx_eps,idx_alpha] = res_tuple[13]
+            res_arr_tFWHM_b[idx_eps,idx_alpha] = res_tuple[14]
 
             idx_alpha = idx_alpha + 1
 
         idx_eps = idx_eps+1
 
-    return (res_arr_tFWHM,res_arr_sizex,res_arr_sizey)
-
-
+    return (res_arr_tFWHM,res_arr_sizex,res_arr_sizey,
+            res_arr_offset_x,res_arr_offset_y,res_arr_vx,res_arr_vy,
+            res_arr_ERx,res_arr_ERy,res_arr_offset_xa,res_arr_offset_xb,
+           res_arr_offset_ya,res_arr_offset_yb,
+           res_arr_tFWHM_a,res_arr_tFWHM_b)
 
 if __name__ =="__main__":
     
@@ -194,11 +247,10 @@ if __name__ =="__main__":
     #arr_eps   = np.linspace(0.03,0.45,80)    
     #arr_alpha = np.linspace(0.05,0.99,80)
 
-    
     arr_eps   = np.linspace(0.03,0.45,36)    
     arr_alpha = np.linspace(0.05,0.99,36)
-    res = run_reduction_lv1_parallel(arr_eps, arr_alpha,'../RUN3/harmo/')
+    res = run_reduction_lv1_parallel(arr_eps, arr_alpha,'../RUN3/funda/',ang_rot=60)
 
-    np.savez('parsetRUN3.harmo.v1.npz',res)
+    np.savez('parsetRUN3.funda.rot60.v1.npz',res)
     print(res)
     # use ray for parallel

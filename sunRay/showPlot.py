@@ -3,7 +3,7 @@ import numpy as np
 from sunRay import plasmaFreq as pfreq
 from sunRay import densityModel as dm
 from sunRay import scattering as scat 
-from sunRay.parameters import dev_u # use GPU if available
+from sunRay.parameters import dev_u,c_r # use GPU if available
 import sunRay.statisticalRays as raystat
 
 import torch
@@ -214,14 +214,15 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     if fit_all:
         (FWHM_ab,
         pfit_xc_a,pfit_xc_b,pfit_yc_a,pfit_yc_b,
-        pfit_sx_a,pfit_sx_b,pfit_sy_a,pfit_sy_b
+        pfit_sx_a,pfit_sx_b,pfit_sy_a,pfit_sy_b,
+         offset_xa,offset_xb,offset_ya,offset_yb
             )=raystat.OffsetSpeed(t_bin_center,flux_all,xc_all,yc_all,
                         sx_all,sy_all,err_xc_all,err_yc_all,
                         err_sx_all,err_sy_all,x0_all=0,y0_all=0,offset=True)
 
 
     
-    print(FWHM_range[1]-FWHM_range[0])
+    print('Total duration : '+ str(FWHM_range[1]-FWHM_range[0]))
 
     fig=plt.figure(figsize=(5*0.75, 5))
     
@@ -239,6 +240,21 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
         ax_FWHM.plot(FWHM_ab[0:2],np.polyval(pfit_sy_a,FWHM_ab[0:2]),'darkblue',zorder=10)
         ax_FWHM.plot(FWHM_ab[1:],np.polyval(pfit_sx_b,FWHM_ab[1:]),'darkred',zorder=10)
         ax_FWHM.plot(FWHM_ab[1:],np.polyval(pfit_sy_b,FWHM_ab[1:]),'darkblue',zorder=10)
+        
+        print('Duration R/D : ' + str(np.round(np.diff(FWHM_ab),5)))
+        print('Vx R/D : '+str(np.round(pfit_xc_a[0],5))+' , '+str(np.round(pfit_xc_b[0],5)))
+        print('Vx R/D (c) : '+str(np.round(pfit_xc_a[0]/c_r,5))+' , '+str(np.round(pfit_xc_b[0]/c_r,5)))
+        print('Vy R/D : '+str(np.round(pfit_yc_a[0],5))+' , '+str(np.round(pfit_yc_b[0],5)))
+        print('Vy R/D (c) : '+str(np.round(pfit_yc_a[0]/c_r,5))+' , '+str(np.round(pfit_yc_b[0]/c_r,5)))
+        print('ERx R/D : '+str(np.round(pfit_sx_a[0],5))+' , '+str(np.round(pfit_sx_b[0],5)))
+        print('ERx R/D (Deg) : '+str(np.round(pfit_sx_a[0]*32/60,5))+' , '+str(np.round(pfit_sx_b[0]*32/60,5)))
+        print('ERx R/D : '+str(np.round(pfit_sy_a[0],5))+' , '+str(np.round(pfit_sy_b[0],5)))
+        print('ERx R/D (Deg) : '+str(np.round(pfit_sy_a[0]*32/60,5))+' , '+str(np.round(pfit_sy_b[0]*32/60,5)))
+        
+        print('Offset R/D  x: '+str(np.round(offset_xa,6))+' , '+str(np.round(offset_xb,6)))
+        print('Offset R/D  y: '+str(np.round(offset_ya,6))+' , '+str(np.round(offset_yb,6)))
+        
+    para_collect = {'offset':[offset_xa,offset_xb,offset_ya,offset_yb]}
     
     # flux data
     ax_t.step(t_bin_center,flux_all/np.max(flux_all),where='mid',color='k')
@@ -289,7 +305,7 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     ax_FWHM.set_ylim(ax_FWHM_ylim)
     ax_XY.set_ylim(ax_XY_ylim)
     
-    return fig,ax_t,ax_XY
+    return fig,ax_t,ax_XY,para_collect
 
 def MovieVariationXY(x_data,y_data,t_data,weights_data,t_step = 0.2,num_t_bins=-1,
                      save_dir = 'moviedir/',xlim=[-2,2],ylim=[-2,2],
