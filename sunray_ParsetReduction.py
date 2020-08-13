@@ -97,9 +97,11 @@ def reduct_single_lv1(eps_cur,alpha_cur,data_dir='../funda/',ang_rot=0):
             r_vec0_rot,k_vec0_rot = raystat.rotateCoordKX(
                 r_vec_0,k_vec_0,-ang_rot*np.pi/180)
 
-            (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat
+            (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat,idx_for_stat
                 )=raystat.ImgXYtEstimate(r_vec_rot,k_vec_rot,t_reach_stat_avail,
                         tau_stat_avail,r_vec0_rot, k_vec0_rot,num_t_bins=150)
+            
+            flux_this = np.sum(weights_stat)/photon_N
 
             x_0,y_0=np.mean(r_vec0_rot,axis=1)[0:2]
             
@@ -152,8 +154,9 @@ def reduct_single_lv1(eps_cur,alpha_cur,data_dir='../funda/',ang_rot=0):
             duration_cur  =  FWHM_range[1]-FWHM_range[0]
             
             return (duration_cur,sx,sy,xc-x_0,yc-y_0,pfit_xc_fwhm[0],pfit_yc_fwhm[0],
-                   pfit_sx_fwhm[0],pfit_sy_fwhm[0],offset_xa,offset_xb,offset_ya,offset_yb,
-                    np.float32(FWHM_ab[1]-FWHM_ab[0]), np.float32(FWHM_ab[2]-FWHM_ab[1]))
+                    pfit_sx_fwhm[0],pfit_sy_fwhm[0],offset_xa,offset_xb,offset_ya,offset_yb,
+                    np.float32(FWHM_ab[1]-FWHM_ab[0]), np.float32(FWHM_ab[2]-FWHM_ab[1]),
+                    np.float32(flux_this))
 
 
 def run_reduction_lv1(arr_eps,arr_alpha,data_dir,ang_rot=0):
@@ -200,6 +203,7 @@ def run_reduction_lv1_parallel(arr_eps,arr_alpha,data_dir,
     res_arr_offset_yb = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
     res_arr_tFWHM_a = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
     res_arr_tFWHM_b = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
+    res_arr_flux = np.zeros((arr_eps.shape[0],arr_alpha.shape[0]))
     
     pool = mp.Pool(processes=num_process)
     
@@ -207,7 +211,8 @@ def run_reduction_lv1_parallel(arr_eps,arr_alpha,data_dir,
     for eps_cur in arr_eps:
         # parallel calc 
         args_input = [(eps_cur,alpha_cur) for alpha_cur in arr_alpha ]
-        results = pool.starmap( partial(reduct_single_lv1,data_dir=data_dir,ang_rot=ang_rot) , args_input)
+        results = pool.starmap( partial(reduct_single_lv1,
+                        data_dir=data_dir,ang_rot=ang_rot) , args_input)
         # collect the results one by one
         idx_alpha=0
         for res_tuple in results:
@@ -227,16 +232,20 @@ def run_reduction_lv1_parallel(arr_eps,arr_alpha,data_dir,
             res_arr_offset_yb[idx_eps,idx_alpha] = res_tuple[12]
             res_arr_tFWHM_a[idx_eps,idx_alpha] = res_tuple[13]
             res_arr_tFWHM_b[idx_eps,idx_alpha] = res_tuple[14]
+            res_arr_flux[idx_eps,idx_alpha] = res_tuple[15]
 
             idx_alpha = idx_alpha + 1
 
         idx_eps = idx_eps+1
+    pool.close()
+    pool.join()
+
 
     return (res_arr_tFWHM,res_arr_sizex,res_arr_sizey,
             res_arr_offset_x,res_arr_offset_y,res_arr_vx,res_arr_vy,
             res_arr_ERx,res_arr_ERy,res_arr_offset_xa,res_arr_offset_xb,
            res_arr_offset_ya,res_arr_offset_yb,
-           res_arr_tFWHM_a,res_arr_tFWHM_b)
+           res_arr_tFWHM_a,res_arr_tFWHM_b,res_arr_flux)
 
 if __name__ =="__main__":
     
@@ -249,8 +258,13 @@ if __name__ =="__main__":
 
     arr_eps   = np.linspace(0.03,0.45,36)    
     arr_alpha = np.linspace(0.05,0.99,36)
-    res = run_reduction_lv1_parallel(arr_eps, arr_alpha,'../RUN3/funda/',ang_rot=60)
-
-    np.savez('parsetRUN3.funda.rot60.v1.npz',res)
+    
+    pat = 'funda'
+    res = run_reduction_lv1_parallel(arr_eps, arr_alpha,'../RUN3/'+pat+'/',ang_rot=0)
+    np.savez('parsetRUN3.'+pat+'.rot0.v1.npz',res)
+    pat = 'harmo'
+    res = run_reduction_lv1_parallel(arr_eps, arr_alpha,'../RUN3/'+pat+'/',ang_rot=0)
+    np.savez('parsetRUN3.'+pat+'.rot0.v1.npz',res)
+    
     print(res)
     # use ray for parallel

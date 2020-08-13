@@ -228,7 +228,8 @@ def ImgXYtEstimate(r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,
 
     t_reach_1au_stat = t_reach_stat
 
-    return (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat)
+    return (x_im_stat,y_im_stat,t_reach_1au_stat,
+            weights_stat,t_free_stat,idx_for_stat)
 
 
 def reduct_lv2(photon_N,r_vec_collect_local,k_vec_collect_local,
@@ -248,7 +249,7 @@ def reduct_lv2(photon_N,r_vec_collect_local,k_vec_collect_local,
         k_vec_collect_local,t_collect,tau_collect_local,omega0,num_t_bins=60)
 
     # reduct to level 2 data
-    (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat
+    (x_im_stat,y_im_stat,t_reach_1au_stat,weights_stat,t_free_stat,idx_for_stat
         )=ImgXYtEstimate(r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,
             tau_stat_avail,r_vec_0, k_vec_0,num_t_bins=60)
 
