@@ -213,10 +213,12 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
         
     if fit_all:
         (FWHM_ab,
-        pfit_xc_a,pfit_xc_b,pfit_yc_a,pfit_yc_b,
-        pfit_sx_a,pfit_sx_b,pfit_sy_a,pfit_sy_b,
-         offset_xa,offset_xb,offset_ya,offset_yb
-            )=raystat.OffsetSpeed(t_bin_center,flux_all,xc_all,yc_all,
+            pfit_xc_a,pfit_xc_b,pfit_yc_a,pfit_yc_b,
+            pfit_sx_a,pfit_sx_b,pfit_sy_a,pfit_sy_b,offset_xa,
+            offset_xb,offset_ya,offset_yb,
+              pfit_xc_fwhm,pfit_yc_fwhm,
+              pfit_sx_fwhm,pfit_sy_fwhm,offset_x_fwhm,offset_y_fwhm,
+                sx_a,sx_b,sy_a,sy_b)=raystat.OffsetSpeedPhase(t_bin_center,flux_all,xc_all,yc_all,
                         sx_all,sy_all,err_xc_all,err_yc_all,
                         err_sx_all,err_sy_all,x0_all=0,y0_all=0,offset=True)
 
@@ -250,6 +252,10 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
         print('ERx R/D (Deg) : '+str(np.round(pfit_sx_a[0]*32/60,5))+' , '+str(np.round(pfit_sx_b[0]*32/60,5)))
         print('ERx R/D : '+str(np.round(pfit_sy_a[0],5))+' , '+str(np.round(pfit_sy_b[0],5)))
         print('ERx R/D (Deg) : '+str(np.round(pfit_sy_a[0]*32/60,5))+' , '+str(np.round(pfit_sy_b[0]*32/60,5)))
+        print('Size X : '   +str(np.round(np.mean(sx_a),5))+      ' , '+str(np.round(np.mean(sx_b),5)))
+        print('Size X (Deg)'+str(np.round(np.mean(sx_a)*32/60,5))+' , '+str(np.round(np.mean(sx_b)*32/60,5)))
+        print('Size Y : '   +str(np.round(np.mean(sy_a),5))+      ' , '+str(np.round(np.mean(sy_b),5)))
+        print('Size Y (Deg)'+str(np.round(np.mean(sy_a)*32/60,5))+' , '+str(np.round(np.mean(sy_b)*32/60,5)))
         
         print('Offset R/D  x: '+str(np.round(offset_xa,6))+' , '+str(np.round(offset_xb,6)))
         print('Offset R/D  y: '+str(np.round(offset_ya,6))+' , '+str(np.round(offset_yb,6)))

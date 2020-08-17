@@ -457,7 +457,8 @@ def OffsetSpeedPhase(t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,
             pfit_sx_a,pfit_sx_b,pfit_sy_a,pfit_sy_b,offset_xa,
             offset_xb,offset_ya,offset_yb,
               pfit_xc_fwhm,pfit_yc_fwhm,
-              pfit_sx_fwhm,pfit_sy_fwhm,offset_x_fwhm,offset_y_fwhm)
+              pfit_sx_fwhm,pfit_sy_fwhm,offset_x_fwhm,offset_y_fwhm,
+           sx_a,sx_b,sy_a,sy_b)
 
     
 def VariationMu(k_vec_stat_avail,t_reach_stat_avail,weights_avial,t_step = 0.005,

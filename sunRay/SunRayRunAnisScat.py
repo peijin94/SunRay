@@ -24,7 +24,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
             sphere_gen = False, num_thread =4, early_cut= True ,dev_u = dev_u,
             save_npz = False, data_dir='./datatmp/',save_level=1,ignore_down=True,
-            Absorb_include=True):
+            Absorb_include=True,dk_record=True):
     """
     name: runRays
     
@@ -128,7 +128,13 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     tau = torch.zeros(rr_cur.shape).to(dev_u)
     dk_inte_refr = torch.zeros(rr_cur.shape).to(dev_u)
     dk_inte_scat = torch.zeros(rr_cur.shape).to(dev_u)
-
+    if dk_record:
+        dkx_inte_refr = torch.zeros(rr_cur.shape).to(dev_u)
+        dkx_inte_scat = torch.zeros(rr_cur.shape).to(dev_u)
+        dky_inte_refr = torch.zeros(rr_cur.shape).to(dev_u)
+        dky_inte_scat = torch.zeros(rr_cur.shape).to(dev_u)
+        dkz_inte_refr = torch.zeros(rr_cur.shape).to(dev_u)
+        dkz_inte_scat = torch.zeros(rr_cur.shape).to(dev_u)
 
     # a function to find the 1/1e4 small element in the array
     find_small_1e3 = lambda arr:  torch.sort(arr)[0][int(photon_N*1e-3)]
@@ -155,6 +161,17 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     t_collect = torch.zeros(collect_N).to(torch.device('cpu'))-1
     dk_refr_collect = torch.zeros(collect_N,photon_N).to(torch.device('cpu'))-1
     dk_scat_collect = torch.zeros(collect_N,photon_N).to(torch.device('cpu'))-1
+    if dk_record:
+        dkx_refr_collect = torch.zeros(collect_N,photon_N).to(dev_u)
+        dkx_scat_collect = torch.zeros(collect_N,photon_N).to(dev_u)
+        dky_refr_collect = torch.zeros(collect_N,photon_N).to(dev_u)
+        dky_scat_collect = torch.zeros(collect_N,photon_N).to(dev_u)
+        dkz_refr_collect = torch.zeros(collect_N,photon_N).to(dev_u)
+        dkz_scat_collect = torch.zeros(collect_N,photon_N).to(dev_u)
+    else:
+        (dkx_refr_collect,dky_refr_collect,dkz_refr_collect,
+        dkx_scat_collect,dkx_scat_collect,dkx_scat_collect)=(0,0,0,0,0,0)
+        
     idx_collect  =  0
     t_current = 0
 
@@ -242,6 +259,11 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 dk_inte_scat = dk_inte_scat + torch.sqrt((dkx_tmp/omega0)**2+
                             (dky_tmp/omega0)**2+(dkz_tmp/omega0)**2)*c_r
                 
+                if dk_record:
+                    dkx_inte_scat = dkx_inte_scat + (dkx_tmp*dt/omega0)*c_r
+                    dky_inte_scat = dky_inte_scat + (dky_tmp*dt/omega0)*c_r
+                    dkz_inte_scat = dkz_inte_scat + (dkz_tmp*dt/omega0)*c_r
+                
                 # rotate back to normal coordinate
                 kx_cur = (-kcx*torch.sin(fi) 
                     -kcy*costheta*torch.cos(fi) +kcz*sintheta*torch.cos(fi) )
@@ -268,6 +290,11 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             dk_inte_refr = dk_inte_refr + torch.sqrt(torch.sum(
                     (dk_xyz_dt*dt/omega0).pow(2),axis=0))*c_r
 
+            if dk_record:
+                dkx_inte_refr = dkx_inte_refr + (dk_xyz_dt*dt/omega0)[0,:]*c_r
+                dky_inte_refr = dky_inte_refr + (dk_xyz_dt*dt/omega0)[1,:]*c_r
+                dkz_inte_refr = dkz_inte_refr + (dk_xyz_dt*dt/omega0)[2,:]*c_r
+            
             # r step forward
             r_vec = r_vec + dr_vec * dt
 
@@ -320,6 +347,14 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             tau_collect[idx_collect,:] = tau.cpu()
             dk_refr_collect[idx_collect,:] = dk_inte_refr.cpu()
             dk_scat_collect[idx_collect,:] = dk_inte_scat.cpu()
+            if dk_record:
+                dkx_refr_collect[idx_collect,:] = dkx_inte_refr.cpu()
+                dky_refr_collect[idx_collect,:] = dky_inte_refr.cpu()
+                dkz_refr_collect[idx_collect,:] = dkz_inte_refr.cpu()
+                dkx_scat_collect[idx_collect,:] = dkx_inte_scat.cpu()
+                dky_scat_collect[idx_collect,:] = dky_inte_scat.cpu()
+                dkz_scat_collect[idx_collect,:] = dkz_inte_scat.cpu()
+                ## to be finished
             idx_collect = idx_collect +1
             if verb_out==2: # print out the process
                 print('F_pe:'+'{:.3f}'.format(np.mean(
@@ -341,6 +376,14 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                     tau_collect   = tau_collect[0:final_collect,:] 
                     dk_refr_collect =dk_refr_collect[0:final_collect,:] 
                     dk_scat_collect =dk_scat_collect[0:final_collect,:] 
+                    
+                    if dk_record:
+                        dkx_refr_collect =dkx_refr_collect[0:final_collect,:] 
+                        dkx_scat_collect =dkx_scat_collect[0:final_collect,:] 
+                        dky_refr_collect =dky_refr_collect[0:final_collect,:] 
+                        dky_scat_collect =dky_scat_collect[0:final_collect,:] 
+                        dkz_refr_collect =dkz_refr_collect[0:final_collect,:] 
+                        dkz_scat_collect =dkz_scat_collect[0:final_collect,:] 
 
                     collect_N = final_collect
 
@@ -383,16 +426,48 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                     photon_N,r_vec_collect_local,k_vec_collect_local,
                     t_collect,tau_collect_local,omega0,num_t_bins=60)
             
-            # for dk of refraction
-            (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dk_refr_avail,
-                            r_vec_0, k_vec_0) =  raystat.reduct_lv1(
-                                photon_N,r_vec_collect_local,k_vec_collect_local,
-                                t_collect,dk_refr_collect,omega0,num_t_bins=60)
-            # for dk of scattering
-            (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dk_scat_avail,
-                            r_vec_0, k_vec_0) =  raystat.reduct_lv1(
-                                photon_N,r_vec_collect_local,k_vec_collect_local,
-                                t_collect,dk_scat_collect,omega0,num_t_bins=60)
+            if dk_record:
+                # for dk of refraction
+                (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dk_refr_avail,
+                                r_vec_0, k_vec_0) =  raystat.reduct_lv1(
+                                    photon_N,r_vec_collect_local,k_vec_collect_local,
+                                    t_collect,dk_refr_collect,omega0,num_t_bins=60)
+                # for dk of scattering
+                (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dk_scat_avail,
+                                r_vec_0, k_vec_0) =  raystat.reduct_lv1(
+                                    photon_N,r_vec_collect_local,k_vec_collect_local,
+                                    t_collect,dk_scat_collect,omega0,num_t_bins=60)
+                # for dk_vec scat
+                (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dkx_scat_avail,
+                                r_vec_0, k_vec_0) =  raystat.reduct_lv1(
+                                    photon_N,r_vec_collect_local,k_vec_collect_local,
+                                    t_collect,dkx_scat_collect,omega0,num_t_bins=60)
+                (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dky_scat_avail,
+                                r_vec_0, k_vec_0) =  raystat.reduct_lv1(
+                                    photon_N,r_vec_collect_local,k_vec_collect_local,
+                                    t_collect,dky_scat_collect,omega0,num_t_bins=60)
+                (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dkz_scat_avail,
+                                r_vec_0, k_vec_0) =  raystat.reduct_lv1(
+                                    photon_N,r_vec_collect_local,k_vec_collect_local,
+                                    t_collect,dkz_scat_collect,omega0,num_t_bins=60)
+                
+                # for dk_vec refr
+                (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dkx_refr_avail,
+                                r_vec_0, k_vec_0) =  raystat.reduct_lv1(
+                                    photon_N,r_vec_collect_local,k_vec_collect_local,
+                                    t_collect,dkx_refr_collect,omega0,num_t_bins=60)
+                (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dky_refr_avail,
+                                r_vec_0, k_vec_0) =  raystat.reduct_lv1(
+                                    photon_N,r_vec_collect_local,k_vec_collect_local,
+                                    t_collect,dky_refr_collect,omega0,num_t_bins=60)
+                (r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,dkz_refr_avail,
+                                r_vec_0, k_vec_0) =  raystat.reduct_lv1(
+                                    photon_N,r_vec_collect_local,k_vec_collect_local,
+                                    t_collect,dkz_refr_collect,omega0,num_t_bins=60)
+            else:
+                dk_refr_avail,dk_scat_avail = 0,0
+                dkx_refr_avail,dky_refr_avail,dkz_refr_avail,dkx_scat_avail,dky_scat_avail,dkz_scat_avail=0,0,0,0,0,0
+                
             
             np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
                 ']_[alpha'+str(np.round(anis,5))+'].lv1.npz', 
@@ -404,11 +479,13 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 r_vec_stat_avail=r_vec_stat_avail,k_vec_stat_avail=k_vec_stat_avail,
                 t_reach_stat_avail=t_reach_stat_avail,
                 tau_stat_avail=tau_stat_avail,r_vec_0=r_vec_0, k_vec_0=k_vec_0,
-                dk_refr_avail=dk_refr_avail,dk_scat_avail=dk_scat_avail)
-
+                dk_refr_avail=dk_refr_avail,dk_scat_avail=dk_scat_avail,dkx_refr_avail=dkx_refr_avail,
+                dky_refr_avail=dky_refr_avail,
+                dkz_refr_avail=dkz_refr_avail,
+                dkx_scat_avail=dkx_scat_avail,
+                dky_scat_avail=dky_scat_avail,
+                dkz_scat_avail=dkz_scat_avail)
             
-
-
     return (steps_N  ,  collect_N,  photon_N, start_r,  start_theta, start_phi,  f_ratio, 
             epsilon ,  anis, asym,  omega0.cpu(), freq0.cpu(), t_collect.cpu(), tau.cpu(),
             r_vec_collect_local,  k_vec_collect_local,  tau_collect_local,
