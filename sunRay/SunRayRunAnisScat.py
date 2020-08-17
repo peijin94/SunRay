@@ -260,9 +260,9 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                             (dky_tmp/omega0)**2+(dkz_tmp/omega0)**2)*c_r
                 
                 if dk_record:
-                    dkx_inte_scat = dkx_inte_scat + (dkx_tmp*dt/omega0)*c_r
-                    dky_inte_scat = dky_inte_scat + (dky_tmp*dt/omega0)*c_r
-                    dkz_inte_scat = dkz_inte_scat + (dkz_tmp*dt/omega0)*c_r
+                    dkx_inte_scat = dkx_inte_scat + (dkx_tmp/omega0)*c_r
+                    dky_inte_scat = dky_inte_scat + (dky_tmp/omega0)*c_r
+                    dkz_inte_scat = dkz_inte_scat + (dkz_tmp/omega0)*c_r
                 
                 # rotate back to normal coordinate
                 kx_cur = (-kcx*torch.sin(fi) 
