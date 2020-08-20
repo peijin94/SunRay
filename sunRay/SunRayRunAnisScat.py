@@ -61,12 +61,12 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     torch.set_num_threads(num_thread)
     # put variable in device
     start_r = torch.tensor([start_r])  
-    PI = torch.acos(torch.Tensor([-1])).to(dev_u) # pi
+    PI = torch.acos(-torch.ones(1,device=dev_u))
     nu_e0 = 2.91e-6*ne_r(start_r)*20./Te**1.5
     nu_e = nu_e0
 
     # frequency of the wave
-    freq0 = f_ratio * pfreq.omega_pe_r(ne_r,start_r.to(dev_u))/(2*PI)
+    freq0 = f_ratio * pfreq.omega_pe_r(ne_r,start_r.to(dev_u),dev_u=dev_u)/(2*PI)
 
     if verb_out:
         print('----------------------------------')
@@ -85,13 +85,13 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     r_vec = torch.stack((rxx,ryy,rzz),0).to(dev_u)
 
     omega0 = freq0*(2*PI)
-    nu_s0 = scat.nuScattering(rr,omega0,epsilon,ne_r)
+    nu_s0 = scat.nuScattering(rr,omega0,epsilon,ne_r,dev_u=dev_u)
 
     #if Show_param:
     #    SP.showParameters(ne_r,omega0,epsilon)  
 
     # wave-vector of the photons
-    kc0 = torch.sqrt(omega0**2. - pfreq.omega_pe_r(ne_r,rr)**2.)
+    kc0 = torch.sqrt(omega0**2. - pfreq.omega_pe_r(ne_r,rr,dev_u=dev_u)**2.)
     if sphere_gen:
         k_theta = torch.Tensor(np.random.uniform(low=-np.pi/2 + 1e-4 ,
                                 high= np.pi/2 ,size=photon_N)).to(dev_u) # k_z > 0 
@@ -121,7 +121,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     # Detach from the previous compute graph
     # before record steps for diff
-    domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach())
+    domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach(),dev_u=dev_u)
 
     Exp_size = 1.25*30./(freq0/1e6)
     dt0 = 0.02*Exp_size/c_r
@@ -182,14 +182,14 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     #for idx_step in (np.arange(steps_N)):
             
         # dispersion relation reform
-        omega = torch.sqrt(pfreq.omega_pe_r(ne_r,rr_cur)**2 + kc_cur**2)
+        omega = torch.sqrt(pfreq.omega_pe_r(ne_r,rr_cur,dev_u=dev_u)**2 + kc_cur**2)
         freq_pe = omega/(2*PI)
 
-        nu_s = scat.nuScattering(rr_cur,omega,epsilon,ne_r)
+        nu_s = scat.nuScattering(rr_cur,omega,epsilon,ne_r,dev_u=dev_u)
         nu_s = nu_s*(nu_s<nu_s0)+nu_s0*(~(nu_s<nu_s0)) # use the smaller nu_s
 
         # detach is essential for remove the previous calc map
-        domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach())
+        domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach(),dev_u=dev_u)
         domega_pe_dr = torch.sqrt(torch.sum(domega_pe_dxyz.pow(2),axis=0))
 
         with torch.no_grad(): # no autograd in following calc
@@ -259,18 +259,20 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 dk_inte_scat = dk_inte_scat + torch.sqrt((dkx_tmp/omega0)**2+
                             (dky_tmp/omega0)**2+(dkz_tmp/omega0)**2)*c_r
                 
-                if dk_record:
-                    dkx_inte_scat = dkx_inte_scat + (dkx_tmp/omega0)*c_r
-                    dky_inte_scat = dky_inte_scat + (dky_tmp/omega0)*c_r
-                    dkz_inte_scat = dkz_inte_scat + (dkz_tmp/omega0)*c_r
-                
                 # rotate back to normal coordinate
-                kx_cur = (-kcx*torch.sin(fi) 
+                kx_cur_new = (-kcx*torch.sin(fi) 
                     -kcy*costheta*torch.cos(fi) +kcz*sintheta*torch.cos(fi) )
-                ky_cur = ( kcx*torch.cos(fi) 
+                ky_cur_new = ( kcx*torch.cos(fi) 
                     -kcy*costheta*torch.sin(fi) +kcz*sintheta*torch.sin(fi) )
-                kz_cur =  kcy*sintheta+kcz*costheta
+                kz_cur_new =  kcy*sintheta+kcz*costheta
 
+                
+                if dk_record:
+                    dkx_inte_scat = dkx_inte_scat + ((kx_cur_new-kx_cur)/omega0)*c_r
+                    dky_inte_scat = dky_inte_scat + ((ky_cur_new-ky_cur)/omega0)*c_r
+                    dkz_inte_scat = dkz_inte_scat + ((kz_cur_new-kz_cur)/omega0)*c_r
+                
+                kx_cur,ky_cur,kz_cur= kx_cur_new,ky_cur_new,kz_cur_new
 
             r_vec = torch.stack((rx_cur,ry_cur,rz_cur),0)
             k_vec = torch.stack((kx_cur,ky_cur,kz_cur),0)
@@ -283,7 +285,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             k_vec = k_vec * kc_cur.repeat(3,1)/ kc_norm.repeat(3,1)
 
             # k step forward  # refraction
-            dk_xyz_dt = ((pfreq.omega_pe_r(ne_r,rr_cur)/omega).repeat(3,1)   
+            dk_xyz_dt = ((pfreq.omega_pe_r(ne_r,rr_cur,dev_u=dev_u)/omega).repeat(3,1)   
                         * domega_pe_dxyz) * c_r
             k_vec = k_vec - dk_xyz_dt * dt
 
@@ -303,12 +305,12 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
             # re-normalize  # to keep omega stable
-            kc_refresh = (torch.sqrt(omega**2-pfreq.omega_pe_r(ne_r,rr_cur)**2)
+            kc_refresh = (torch.sqrt(omega**2-pfreq.omega_pe_r(ne_r,rr_cur,dev_u=dev_u)**2)
                 /torch.sqrt(torch.sum(k_vec.pow(2),axis=0)))
             k_vec = k_vec * kc_refresh.repeat(3,1)
 
             nu_e = (2.91e-6 * ne_r(rr_cur) * 20. / Te**1.5
-                *pfreq.omega_pe_r(ne_r, rr_cur)**2/omega**2)
+                *pfreq.omega_pe_r(ne_r, rr_cur,dev_u=dev_u)**2/omega**2)
             
             tau = tau + nu_e*dt
 
@@ -358,7 +360,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             idx_collect = idx_collect +1
             if verb_out==2: # print out the process
                 print('F_pe:'+'{:.3f}'.format(np.mean(
-                    (pfreq.omega_pe_r(ne_r,torch.mean(rr_cur))/2/PI/1e6).cpu().data.numpy()))+
+                    (pfreq.omega_pe_r(ne_r,torch.mean(rr_cur),dev_u=dev_u)/2/PI/1e6).cpu().data.numpy()))+
                     ' |  R:'+'{:.3f}'.format(torch.mean(rr_cur).cpu().data.numpy())+
                     ' |  Ne_r:'+'{:.3f}'.format(ne_r(torch.mean(rr_cur)).cpu().data.numpy())+
                     ' |  nu_s: ' +  '{:.3f}'.format(torch.mean(0.1/nu_s).cpu().data.numpy())+

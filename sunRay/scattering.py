@@ -5,23 +5,23 @@ from sunRay.parameters import dev_u,const_c
 import math
 
 
-PI = torch.acos(torch.Tensor([-1])).to(dev_u)
-
 @torch.enable_grad()
-def nuScattering(r,Omega,epsilon,dens = dm.leblanc98):
+def nuScattering(r,Omega,epsilon,dens = dm.leblanc98,dev_u=dev_u):
 # basic scattering model
+    PI = torch.acos(-torch.ones(1,device=dev_u))
     h_i = 684*1e5/torch.sqrt(dens(r));
     # inner tubulence scale in cm
     q_av = 4/(torch.sqrt(PI)*h_i)
     # average q assuming Gaussian spectrum
     w_pe = dm.f_Ne(dens(r)) * 2 * PI
 
-    nu_s = nuScatterKrupar(r,Omega,epsilon,dens)
+    nu_s = nuScatterKrupar(r,Omega,epsilon,dens,dev_u=dev_u)
     return nu_s
 
 @torch.enable_grad()
-def nuScatterKrupar(r,Omega,epsilon,dens = dm.leblanc98):
+def nuScatterKrupar(r,Omega,epsilon,dens = dm.leblanc98,dev_u=dev_u):
 # scattering power as per Krupar paper
+    PI = torch.acos(-torch.ones(1,device=dev_u))
     l_i = 1.0e5* r
     l_0 = 0.23e0* 6.9e10*r**0.82
     # outer turbulence scale
@@ -34,9 +34,10 @@ def nuScatterKrupar(r,Omega,epsilon,dens = dm.leblanc98):
     return nu_s
 
 @torch.enable_grad()
-def nuScatterKrupar2(r,Omega,epsilon,dens=dm.leblanc98):
+def nuScatterKrupar2(r,Omega,epsilon,dens=dm.leblanc98,dev_u=dev_u):
 # scattering power as per Krupar paper with 
 # different outter turbulence scale
+    PI = torch.acos(-torch.ones(1,device=dev_u))
     l_i = 684 * 1e5 / torch.sqrt(dens(r))
     l_0 = 0.23*6.9e10*(r-1)
     w_pe = dm.f_Ne(dens(r))* 2 * PI
@@ -46,8 +47,9 @@ def nuScatterKrupar2(r,Omega,epsilon,dens=dm.leblanc98):
     return nu_s
 
 @torch.enable_grad()
-def nuScatterChen(r,Omega,epsilon,dens=dm.leblanc98):
+def nuScatterChen(r,Omega,epsilon,dens=dm.leblanc98,dev_u=dev_u):
 # scattering power as per the Chen paper
+    PI = torch.acos(-torch.ones(1,device=dev_u))
     h_i = 684*1e5/torch.sqrt(dens(r));
     # inner tubulence scale in cm
     q_av = 4/(torch.sqrt(PI)*h_i)
@@ -60,8 +62,9 @@ def nuScatterChen(r,Omega,epsilon,dens=dm.leblanc98):
     return nu_s
 
 @torch.enable_grad()
-def nuScatterSpangler(r,Omega,epsilon,dens=dm.leblanc98):
+def nuScatterSpangler(r,Omega,epsilon,dens=dm.leblanc98,dev_u=dev_u):
 # scattering power as per Splangler paper
+    PI = torch.acos(-torch.ones(1,device=dev_u))
     h_i = 684*1e5/torch.sqrt(dens(r));
     # inner tubulence scale in cm
     w_pe = dm.f_Ne(dens(r))* 2 * PI

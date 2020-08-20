@@ -119,8 +119,8 @@ def XYDistributionImage(ax_main,x,y,weights_data,bins_data=100):
 
     imOBJ = ax_main.imshow(masked_data,origin='low',interpolation='nearest',
         extent=[xx[0], xx[-1], yy[0], yy[-1]],cmap='magma_r')
-    ax_main.set_xlabel('X [Solar Radius]')
-    ax_main.set_ylabel('Y [Solar Radius]')
+    ax_main.set_xlabel(r'X [Solar Radius]')
+    ax_main.set_ylabel(r'Y [Solar Radius]')
 
     (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(x,y,weights_data)
 
@@ -151,8 +151,8 @@ def MuVariationPlot(k_vec_stat_avail,t_reach_stat_avail,weights_avial,t_step = 0
                 aspect = (np.max(t_bin_center)-np.min(t_bin_center))*frameratio ,
                 cmap = 'Blues')
     
-    ax_t.set_xlabel('Time [s]')
-    ax_t.set_ylabel("$\mu$")
+    ax_t.set_xlabel(r'Time [s]')
+    ax_t.set_ylabel(r"$\mu$")
     
     mu_all = k_vec_stat_avail[2,:]/np.sqrt(np.sum(k_vec_stat_avail**2,axis=0))
     
@@ -166,7 +166,7 @@ def MuVariationPlot(k_vec_stat_avail,t_reach_stat_avail,weights_avial,t_step = 0
 
 
 def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-1,x_0=0,y_0=0,offset=False,fit_all=True):
-
+    rc('text', usetex=False)
     (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
         err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_data,y_data,
                     t_data,weights_data,t_step,num_t_bins)
@@ -267,7 +267,7 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     # fitted data
     if fit_done:
         ax_t.plot(t_bin_center,fitted_flux/np.max(fitted_flux),color='C9')
-    ax_t.set_ylabel('Normalized')
+    ax_t.set_ylabel(r'Normalized')
     ax_t.tick_params(direction='in', labelbottom=False)
     ax_t.set_ylim([0,1.1])
     ax_t.set_yticks([0.2, 0.4, 0.6, 0.8, 1])
@@ -290,9 +290,9 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
     ax_FWHM.tick_params(direction='in')
     ax_FWHM.plot([t_bin_center[0],t_bin_center[-1]],[sx,sx],'r--',linewidth=0.6)
     ax_FWHM.plot([t_bin_center[0],t_bin_center[-1]],[sy,sy],'b--',linewidth=0.6)
-    ax_FWHM.set_xlabel('Time [s]')
+    ax_FWHM.set_xlabel(r'Time (s)')
     ax_FWHM.set_ylabel(r"X,Y FWHM ($R_s$)")
-    ax_t.legend((l1,l2),("X","Y"))
+    ax_t.legend((l1,l2),(r"X",r"Y"))
     
 
     ax_t.axvspan(FWHM_range[0], FWHM_range[1], alpha=0.1, color='k')
@@ -353,10 +353,10 @@ def MovieVariationXY(x_data,y_data,t_data,weights_data,t_step = 0.2,num_t_bins=-
             ax_t.plot([t_bin_center[idx_t_bin],t_bin_center[idx_t_bin]],
                      [-1,10],'k-') # show t_bin_center
             
-            ax_t.set_ylabel('Normalized')
+            ax_t.set_ylabel(r'Normalized')
             ax_t.tick_params(direction='in')#, labelbottom=False)
             ax_t.set_ylim([0,1.1])
-            ax_t.set_xlabel('Time (s)')
+            ax_t.set_xlabel(r'Time (s)')
             ax_t.set_yticks([0.2, 0.4, 0.6, 0.8, 1])
 
             ax_main  = plt.axes([0.17,0.4,0.78,0.78*2/3])
