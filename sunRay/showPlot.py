@@ -260,6 +260,8 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
         print('Offset R/D  x: '+str(np.round(offset_xa,6))+' , '+str(np.round(offset_xb,6)))
         print('Offset R/D  y: '+str(np.round(offset_ya,6))+' , '+str(np.round(offset_yb,6)))
         
+        print('Peak t :'+str(np.round(FWHM_peak,6)))
+        
     para_collect = {'offset':[offset_xa,offset_xb,offset_ya,offset_yb]}
     
     # flux data

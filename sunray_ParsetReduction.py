@@ -108,20 +108,22 @@ def reduct_single_lv1(eps_cur,alpha_cur,data_dir='../funda/',ang_rot=0):
             (xc,yc,sx,sy,err_xc,err_yc,err_sx,err_sy) = raystat.centroidXYFWHM(
                 x_im_stat,y_im_stat,weights_stat)
 
+            
             try:
                 (t_bin_center,flux_all,xc_all,yc_all,sx_all,
                     sy_all,err_xc_all,err_yc_all,
                     err_sx_all,err_sy_all
                     ) = raystat.variationXYFWHM(x_im_stat,y_im_stat,
                     t_reach_1au_stat,weights_stat,num_t_bins=160)
-
+                
                 (FWHM_ab,
                 pfit_xc_a,pfit_xc_b,pfit_yc_a,pfit_yc_b,
                 pfit_sx_a,pfit_sx_b,pfit_sy_a,pfit_sy_b,offset_xa,
                 offset_xb,offset_ya,offset_yb,
-                  pfit_xc_fwhm,pfit_yc_fwhm,
-                  pfit_sx_fwhm,pfit_sy_fwhm,offset_x_fwhm,offset_y_fwhm
-                    )=raystat.OffsetSpeedPhase(t_bin_center,flux_all,
+                pfit_xc_fwhm,pfit_yc_fwhm,
+                pfit_sx_fwhm,pfit_sy_fwhm,offset_x_fwhm,offset_y_fwhm,
+                       sx_a,sx_b,sy_a,sy_b)=raystat.OffsetSpeedPhase(
+                    t_bin_center,flux_all,
                     xc_all,yc_all,sx_all,sy_all,
                     err_xc_all,err_yc_all,err_sx_all,err_sy_all,
                     x0_all=x_0,y0_all=y_0,offset=True)
@@ -258,13 +260,13 @@ if __name__ =="__main__":
 
     arr_eps   = np.linspace(0.03,0.45,36)    
     arr_alpha = np.linspace(0.05,0.99,36)
-    
+    angrot_cur = 0
     pat = 'funda'
-    res = run_reduction_lv1_parallel(arr_eps, arr_alpha,'../RUN3/'+pat+'/',ang_rot=0)
-    np.savez('parsetRUN3.'+pat+'.rot0.v1.npz',res)
+    res = run_reduction_lv1_parallel(arr_eps, arr_alpha,'../RUN3/'+pat+'/',ang_rot=angrot_cur)
+    np.savez('parsetRUN3.'+pat+'.rot'+str(angrot_cur)+'.v1.npz',res)
     pat = 'harmo'
-    res = run_reduction_lv1_parallel(arr_eps, arr_alpha,'../RUN3/'+pat+'/',ang_rot=0)
-    np.savez('parsetRUN3.'+pat+'.rot0.v1.npz',res)
+    res = run_reduction_lv1_parallel(arr_eps, arr_alpha,'../RUN3/'+pat+'/',ang_rot=angrot_cur)
+    np.savez('parsetRUN3.'+pat+'.rot'+str(angrot_cur)+'.v1.npz',res)
     
     print(res)
     # use ray for parallel
