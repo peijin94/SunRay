@@ -42,10 +42,61 @@ cat params.input | parallel -j4 'CUDA_VISIBLE_DEVICES=$(({%} - 1)) python {} &> 
 
 ### Simulation output
 
-* Level 0 (lv0) x,y,z kx,ky,kz, t at sampled time points. (huge in size but contains every thing, all information of all checkpoints)
-* Level 1 (lv1) x,y,z kx,ky,kz at arrival shell (single time point, recommended form)
-* Level 2 (lv2) im_x, im_y, tretraced and observed x,y position estimated
-* Level 3 (lv3) duration and source size
+* Level 0 (lv0) x,y,z kx,ky,kz, t at sampled time points. (huge in size but contains every thing, all information of all checkpoints, just for test cases, too large)
+|Variable Name|
+|---|
+|steps_N             | 
+|collect_N           |
+|photon_N            |
+|start_r             |
+|start_theta         |
+|start_phi           |
+|f_ratio             |
+|epsilon             |
+|anis                |
+|asym                |
+|omega0              |
+|freq0               |
+|t_collect           |
+|tau                 |
+|r_vec_collect_local |
+|k_vec_collect_local |
+|tau_collect_local   |
+
+
+* Level 1 (lv1) x,y,z kx,ky,kz at arrival shell (single time point, **recommended form**)
+|Variable Name|
+|---|
+|steps_N  |
+ |collect_N |
+ |photon_N |
+ |start_r |
+ |start_theta |
+ |start_phi  |
+ |f_ratio  |
+ |epsilon |
+ |anis |
+ |asym |
+ |omega0|
+ |freq0|
+ |r_vec_stat_avail|
+ |k_vec_stat_avail|
+ |t_reach_stat_avail|
+|tau_stat_avail|
+|r_vec_0|
+ |k_vec_0|
+ |dk_refr_avail|
+ |dk_scat_avail|
+ |dkx_refr_avail|
+|dky_refr_avail|
+|dkz_refr_avail|
+|dkx_scat_avail|
+|dky_scat_avail|
+|dkz_scat_avail|
+
+
+* Level 2 (lv2) im_x, im_y, tretraced and observed x,y position estimated (TBD)
+* Level 3 (lv3) duration and source size (TBD)
 
 ## Benchmark
 
