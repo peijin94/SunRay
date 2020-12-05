@@ -43,6 +43,7 @@ cat params.input | parallel -j4 'CUDA_VISIBLE_DEVICES=$(({%} - 1)) python {} &> 
 ### Simulation output
 
 * Level 0 (lv0) x,y,z kx,ky,kz, t at sampled time points. (huge in size but contains every thing, all information of all checkpoints, just for test cases, too large)
+
 |Variable Name|
 |---|
 |steps_N             | 
@@ -65,6 +66,7 @@ cat params.input | parallel -j4 'CUDA_VISIBLE_DEVICES=$(({%} - 1)) python {} &> 
 
 
 * Level 1 (lv1) x,y,z kx,ky,kz at arrival shell (single time point, **recommended form**)
+
 |Variable Name|
 |---|
 |steps_N  |
