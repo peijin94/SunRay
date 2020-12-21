@@ -10,6 +10,7 @@ __pycache__/
 moviedir/
 img/
 datatmp/
+testruns/
 
 # C extensions
 *.so

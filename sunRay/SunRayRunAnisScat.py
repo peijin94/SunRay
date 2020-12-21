@@ -15,7 +15,7 @@ import time
 from tqdm import tqdm # for processing bar
 
 
-torch.set_default_tensor_type(torch.FloatTensor) # float is enough
+torch.set_default_tensor_type(torch.FloatTensor) # float is enough # float64 is overcare
 
 def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             start_r = 1.75, start_theta = 0/180.0*np.pi,    start_phi  = 0/180.0*np.pi,
@@ -55,7 +55,6 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     results:
         The t k and r of the ray-tracing result
-
     """
 
     torch.set_num_threads(num_thread)
@@ -318,12 +317,13 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             kc_cur = torch.sqrt(torch.sum(k_vec.pow(2),axis=0))
 
             # absorb the photon with large optical depth(set as NaN)
-            # 9.210 -> I=1e-4
-            # 6.908 -> I=1e-3
-            # 4.605 -> I=1e-2
+            # 11.513 -> I=1e-5 for very low frequency ratio
+            # 9.210  -> I=1e-4
+            # 6.908  -> I=1e-3
+            # 4.605  -> I=1e-2
             # remove every 128 steps
             if (idx_step%128==0) and Absorb_include:
-                idx_absorb = torch.nonzero(tau>6.908,as_tuple=False)
+                idx_absorb = torch.nonzero(tau>11.513,as_tuple=False)
                 r_vec[:,idx_absorb] = r_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
                 k_vec[:,idx_absorb] = k_vec[:,idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
                 rr_cur[idx_absorb] =  rr_cur[idx_absorb]*torch.Tensor([np.nan]).to(dev_u) 
@@ -331,15 +331,17 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 tau[idx_absorb] = tau[idx_absorb]*torch.Tensor([np.nan]).to(dev_u)
 
                 # remove [tail and back propagation]
-                idx_absorb2 = torch.nonzero( ((torch.sum(r_vec*k_vec,axis=0)/(rr_cur*kc_cur))<0.01) & 
-                                            (rr_cur < find_small_1e3(rr_cur)),
-                                            as_tuple=False)
-                r_vec[:,idx_absorb2] = r_vec[:,idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
-                k_vec[:,idx_absorb2] = k_vec[:,idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
-                rr_cur[idx_absorb2] =  rr_cur[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
-                kc_cur[idx_absorb2] =  kc_cur[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u)
-                tau[idx_absorb2] = tau[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u)
-                
+                absorb_tail=False
+                if absorb_tail:
+                    idx_absorb2 = torch.nonzero( ((torch.sum(r_vec*k_vec,axis=0)/(rr_cur*kc_cur))<0.01) & 
+                                                (rr_cur < find_small_1e3(rr_cur)),
+                                                as_tuple=False)
+                    r_vec[:,idx_absorb2] = r_vec[:,idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
+                    k_vec[:,idx_absorb2] = k_vec[:,idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
+                    rr_cur[idx_absorb2] =  rr_cur[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
+                    kc_cur[idx_absorb2] =  kc_cur[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u)
+                    tau[idx_absorb2] = tau[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u)
+
 
         t_current = t_current + dt
         if idx_step in collectPoints:

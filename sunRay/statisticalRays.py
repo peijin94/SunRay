@@ -86,19 +86,22 @@ def reduct_lv1(photon_N,r_vec_collect_local,k_vec_collect_local,
     Output :
         k_vec, r_vec at r
     """
-
-    find_small_1e3 = lambda arr:  np.sort(arr)[int(photon_N*1e-3)]
+    
+    idx_photon_exist = ~np.isnan(tau_collect_local[-1,:])
+    N_idx_photon_exist = tau_collect_local[-1,:][~np.isnan(tau_collect_local[-1,:])].shape[0]
+    
+    find_small_1e3 = lambda arr:  np.sort(arr)[int(N_idx_photon_exist*1e-3)]
     # collect the photons
-    r_vec_end = r_vec_collect_local[-1,:,:].reshape(3,-1)
-    k_vec_end = k_vec_collect_local[-1,:,:].reshape(3,-1)
+    r_vec_end = r_vec_collect_local[-1,:,idx_photon_exist].reshape(3,-1)
+    k_vec_end = k_vec_collect_local[-1,:,idx_photon_exist].reshape(3,-1)
     rr_end = np.sqrt(np.sum(r_vec_end**2,axis=0))
     kk_end = np.sqrt(np.sum(k_vec_end**2,axis=0))
 
-    r_vec_start = r_vec_collect_local[0,:,:].reshape(3,-1)
+    r_vec_start = r_vec_collect_local[0,:,idx_photon_exist].reshape(3,-1)
     rr_start = np.sqrt(np.sum(r_vec_start**2,axis=0))   
 
     # most of the photons passed this range
-    r_get = np.min([find_small_1e3(rr_end),205])
+    r_get = np.min([find_small_1e3(rr_end),215])
     kx_end,ky_end,kz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
     rx_end,ry_end,rz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]
 
