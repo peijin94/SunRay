@@ -63,7 +63,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     PI = torch.acos(-torch.ones(1,device=dev_u))
     nu_e0 = 2.91e-6*ne_r(start_r)*20./Te**1.5
     nu_e = nu_e0
-
+    photon_N_exist=photon_N
+    
     # frequency of the wave
     freq0 = f_ratio * pfreq.omega_pe_r(ne_r,start_r.to(dev_u),dev_u=dev_u)/(2*PI)
 
@@ -123,7 +124,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach(),dev_u=dev_u)
 
     Exp_size = 1.25*30./(freq0/1e6)
-    dt0 = 0.02*Exp_size/c_r
+    dt0 = 0.01*Exp_size/c_r
     tau = torch.zeros(rr_cur.shape).to(dev_u)
     dk_inte_refr = torch.zeros(rr_cur.shape).to(dev_u)
     dk_inte_scat = torch.zeros(rr_cur.shape).to(dev_u)
@@ -176,8 +177,10 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     time.sleep(0.5)
 
+    
+    pbar=tqdm(np.arange(steps_N))
     # the big loop
-    for idx_step in (tqdm(np.arange(steps_N)) if verb_out else np.arange(steps_N)): #show process bar
+    for idx_step in (pbar if verb_out else np.arange(steps_N)): #show process bar
     #for idx_step in (np.arange(steps_N)):
             
         # dispersion relation reform
@@ -211,10 +214,16 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 dt_ref = find_small_1e3(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
                 dt_dr  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
                 dt_nu  = find_small_1e3(0.1/(nu_s)) 
+            dt_fix=(40/c_r/(steps_N/collect_N))[0]
             
-        
             # make sure most of the photons have proper dt 
-            dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0])]).to(dev_u)
+            dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0,dt_fix])]).to(dev_u)
+            #if verb_out :
+            #    pbar.set_postfix({'dt': [dt.cpu().numpy()[0],
+            #                             dt_ref.cpu(),
+            #                             dt_dr.cpu(),
+            #                             dt_nu.cpu(),
+            #                             dt0.cpu()]})
 
             g0 = torch.sqrt(nu_s*kc_cur**2)
 
@@ -341,6 +350,31 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                     rr_cur[idx_absorb2] =  rr_cur[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u) 
                     kc_cur[idx_absorb2] =  kc_cur[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u)
                     tau[idx_absorb2] = tau[idx_absorb2]*torch.Tensor([np.nan]).to(dev_u)
+                    
+                # change size every 1024 step [drop removed photons]
+                change_size=False
+                if (idx_step%2048==0):
+                    if change_size:
+                        idx_exist = ~torch.isnan(tau)
+                        tau=tau[idx_exist]
+                        tau_collect = tau_collect[:,idx_exist]
+                        k_vec=k_vec[:,idx_exist]
+                        r_vec=r_vec[:,idx_exist]
+                        k_vec_collect=k_vec_collect[:,:,idx_exist]
+                        r_vec_collect=r_vec_collect[:,:,idx_exist]
+                        dk_refr_collect=dk_refr_collect[:,idx_exist]
+                        dk_scat_collect=dk_scat_collect[:,idx_exist]
+
+                        if dk_record:
+                            dkx_refr_collect=dkx_refr_collect[:,idx_exist]
+                            dky_refr_collect=dky_refr_collect[:,idx_exist]
+                            dkz_refr_collect=dkz_refr_collect[:,idx_exist]
+                            dkx_scat_collect=dkx_scat_collect[:,idx_exist]
+                            dky_scat_collect=dky_scat_collect[:,idx_exist]
+                            dkz_scat_collect=dkz_scat_collect[:,idx_exist]
+                    else:   
+                        photon_N_exist=tau[~torch.isnan(tau)].shape[0]
+                        find_small_1e3 = lambda arr:  torch.sort(arr)[0][int(photon_N_exist*1e-3)]
 
 
         t_current = t_current + dt
@@ -369,9 +403,32 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                     ' |  F_ratio: ' +  '{:.3f}'.format(torch.mean(omega0/omega).cpu().data.numpy()))
             
             if early_cut and (idx_step>5000):
-                if find_small_1e3(rr_cur)>205: # all out of 1AU
-                    final_collect = idx_collect
+                if find_small_1e3(rr_cur)>215: # all out of 1AU
                     
+                    # remove nans
+                    idx_exist = ~torch.isnan(tau)
+                    tau=tau[idx_exist]
+                    tau_collect = tau_collect[:,idx_exist]
+                    k_vec=k_vec[:,idx_exist]
+                    r_vec=r_vec[:,idx_exist]
+                    k_vec_collect=k_vec_collect[:,:,idx_exist]
+                    r_vec_collect=r_vec_collect[:,:,idx_exist]
+                    dk_refr_collect=dk_refr_collect[:,idx_exist]
+                    dk_scat_collect=dk_scat_collect[:,idx_exist]
+
+                    if dk_record:
+                        dkx_refr_collect=dkx_refr_collect[:,idx_exist]
+                        dky_refr_collect=dky_refr_collect[:,idx_exist]
+                        dkz_refr_collect=dkz_refr_collect[:,idx_exist]
+                        dkx_scat_collect=dkx_scat_collect[:,idx_exist]
+                        dky_scat_collect=dky_scat_collect[:,idx_exist]
+                        dkz_scat_collect=dkz_scat_collect[:,idx_exist]
+                                        
+                    photon_N_exist=tau.shape[0]
+                    find_small_1e3 = lambda arr:  torch.sort(arr)[0][int(photon_N_exist*1e-3)]
+                    
+                    
+                    final_collect = idx_collect
                     # cut
                     t_collect = t_collect[0:final_collect]
                     
