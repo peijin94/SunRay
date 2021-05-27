@@ -117,7 +117,7 @@ def XYDistributionImage(ax_main,x,y,weights_data,bins_data=100):
     img_2d,xx,yy = np.histogram2d(x,y,weights=weights_data,bins=bins_data)
     masked_data  = np.ma.masked_where(img_2d.T<1e-2,img_2d.T)
 
-    imOBJ = ax_main.imshow(masked_data,origin='low',interpolation='nearest',
+    imOBJ = ax_main.imshow(masked_data,origin='lower',interpolation='nearest',
         extent=[xx[0], xx[-1], yy[0], yy[-1]],cmap='magma_r')
     ax_main.set_xlabel(r'X [Solar Radius]')
     ax_main.set_ylabel(r'Y [Solar Radius]')
@@ -317,10 +317,13 @@ def XYVariationPlot(x_data,y_data,t_data,weights_data,t_step = 0.05,num_t_bins=-
 
 def MovieVariationXY(x_data,y_data,t_data,weights_data,t_step = 0.2,num_t_bins=-1,
                      save_dir = 'moviedir/',xlim=[-2,2],ylim=[-2,2],
-                    x_0=0,y_0=0,title_this=''):
+                    x_0=0,y_0=0,title_this='',orintation=1,dpi=200):
     """
     Generate a movie of the moving source 
+    1:horizontal
+    0:left-right
     """
+    
     (t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,err_xc_all,err_yc_all,
         err_sx_all,err_sy_all) = raystat.variationXYFWHM(x_data,y_data,
                     t_data,weights_data,t_step,num_t_bins)
@@ -347,8 +350,17 @@ def MovieVariationXY(x_data,y_data,t_data,weights_data,t_step = 0.2,num_t_bins=-
             y_im_in_t_range = y_data[idx_in_t_range]
             weights_in_t_range = weights_data[idx_in_t_range]
             
-            fig_cur = plt.figure(figsize=(4, 6), dpi= 200)
-            ax_t = plt.axes([0.17,0.13,0.78,0.2])
+            
+            if orintation:
+                fig_cur = plt.figure(figsize=(4, 6), dpi= dpi)
+                ax_main  = plt.axes([0.17,0.4,0.78,0.78*2/3])
+                ax_t = plt.axes([0.17,0.13,0.78,0.2])
+
+            else:
+                fig_cur = plt.figure(figsize=(8, 4), dpi= dpi)
+                ax_main  = plt.axes([0.12,0.13,0.78/2,0.78])
+                ax_t = plt.axes([0.62,0.13,0.78/2.5,0.78])
+
             # flux data
             ax_t.step(t_bin_center,flux_all/np.max(flux_all),where='mid',color='k')
             
@@ -361,7 +373,6 @@ def MovieVariationXY(x_data,y_data,t_data,weights_data,t_step = 0.2,num_t_bins=-
             ax_t.set_xlabel(r'Time (s)')
             ax_t.set_yticks([0.2, 0.4, 0.6, 0.8, 1])
 
-            ax_main  = plt.axes([0.17,0.4,0.78,0.78*2/3])
 
             imOBJ=XYDistributionImage(ax_main,x_im_in_t_range,y_im_in_t_range,weights_in_t_range,
                                 bins_data = np.linspace(-2.5,2.5,140))
@@ -386,3 +397,6 @@ def MovieVariationXY(x_data,y_data,t_data,weights_data,t_step = 0.2,num_t_bins=-
     
 
     return plt.gcf()
+
+
+

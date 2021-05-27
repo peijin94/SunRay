@@ -163,7 +163,7 @@ def reduct_lv1(photon_N,r_vec_collect_local,k_vec_collect_local,
             r_vec_0, k_vec_0)
 
 def ImgXYtEstimate(r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,
-            tau_stat_avail,r_vec_0, k_vec_0,num_t_bins=60):        
+            tau_stat_avail,r_vec_0, k_vec_0,num_t_bins=60,mu_range=0.90):        
     """
     Estimate the x,y position and the intensity in image of observation
     """
@@ -174,7 +174,7 @@ def ImgXYtEstimate(r_vec_stat_avail,k_vec_stat_avail,t_reach_stat_avail,
     kz_stat_avail = k_vec_stat_avail[2,:]
 
     idx_for_stat = np.where((kz_stat_avail/kk_stat_avail<1.00) & 
-                            (kz_stat_avail/kk_stat_avail>0.90))
+                            (kz_stat_avail/kk_stat_avail>mu_range))
 
     
     x_im_stat = np.zeros(idx_for_stat[0].shape)
@@ -465,14 +465,17 @@ def OffsetSpeedPhase(t_bin_center,flux_all,xc_all,yc_all,sx_all,sy_all,
 
     
 def VariationMu(k_vec_stat_avail,t_reach_stat_avail,weights_avial,t_step = 0.005,
-                    num_t_bins=-1,num_mu_bins=100):
+                    num_t_bins=-1,num_mu_bins=100,t_lim=-1):
 
     t_reach_1au_stat = t_reach_stat_avail
     weights_stat = weights_avial
-
-    lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.2
-    upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.1))]+0.2
-
+    
+    if t_lim[0]==-1:
+        lower_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*1e-3)]-0.2
+        upper_t_lim = np.sort(t_reach_1au_stat)[int(t_reach_1au_stat.shape[0]*(1-0.1))]+0.2
+    else:
+        lower_t_lim,upper_t_lim=t_lim
+        
     if num_t_bins<0:
         num_t_bins = int((upper_t_lim-lower_t_lim)/t_step)
 

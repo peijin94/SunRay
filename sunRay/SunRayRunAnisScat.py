@@ -13,7 +13,7 @@ import sunRay.statisticalRays as raystat
 import torch
 import time
 from tqdm import tqdm # for processing bar
-
+import datetime
 
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough # float64 is overcare
 
@@ -469,8 +469,10 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     if save_npz:
          # save the data to npz file
         if save_level == 0:
+            import datetime
+            t_stamp=str(datetime.datetime.now()).replace(' ','_').replace('-','').replace(':','')[0:15]
             np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
-                ']_[alpha'+str(np.round(anis,5))+'].npz', 
+                ']_[alpha'+str(np.round(anis,5))+']_R'+str(np.round(f_ratio,5))+'_'+t_stamp+'.lv1.npz', 
                 steps_N  = steps_N, 
                 collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
                 start_theta = start_theta, start_phi  = start_phi, 
@@ -528,10 +530,11 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             else:
                 dk_refr_avail,dk_scat_avail = 0,0
                 dkx_refr_avail,dky_refr_avail,dkz_refr_avail,dkx_scat_avail,dky_scat_avail,dkz_scat_avail=0,0,0,0,0,0
-                
             
+            import datetime
+            t_stamp=str(datetime.datetime.now()).replace(' ','_').replace('-','').replace(':','')[0:15]
             np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
-                ']_[alpha'+str(np.round(anis,5))+'].lv1.npz', 
+                ']_[alpha'+str(np.round(anis,5))+']_R'+str(np.round(f_ratio,5))+'_'+t_stamp+'.lv1.npz', 
                 steps_N  = steps_N, 
                 collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
                 start_theta = start_theta, start_phi  = start_phi, 
