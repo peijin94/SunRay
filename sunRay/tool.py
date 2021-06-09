@@ -23,3 +23,9 @@ def freq_to_R(f,f_ratio,ne_r = dm.parkerfit):
     func  = lambda R : f_pe - (pf.omega_pe_r_np(ne_r,torch.Tensor([R])) /2/PI).numpy()[0]
     R_solution = fsolve(func, 2) # solve the R
     return R_solution # [R_s]
+
+def rect_to_sphere(rx,ry,rz):
+    r=0
+    theta=0
+    phi=0
+    return(r,theta,phi)
