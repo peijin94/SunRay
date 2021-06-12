@@ -12,6 +12,9 @@ __pycache__/
 
 moviedir/
 img/
+img_v3/
+img_v2/
+img_swind/
 datatmp/
 testruns/
 

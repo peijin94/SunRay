@@ -150,7 +150,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             print("Scattering dt : "+str(1/dt_nu0.cpu().numpy()))
             print("Absorb Col    : "+str(1/dt_nue0.cpu().numpy()[0]))
             print("Absorb  t     : "+str((1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5)[0].cpu().numpy()))
-        
+    else :
+        steps_N = torch.tensor([steps_N])       
 
     # collect the variables of the simulation
     # collect to CPU (GPU mem is expensive)

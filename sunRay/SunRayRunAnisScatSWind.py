@@ -19,17 +19,17 @@ from tqdm import tqdm # for processing bar
 import datetime
 
 
-
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough # float64 is overcare
 
 def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
-            start_r = 1.75, start_theta = 0/180.0*np.pi,    start_phi  = 0/180.0*np.pi,
-            f_ratio  = 1.1, ne_r = dm.parkerfit,    epsilon = 0.4, anis = 0.2,
+            start_r = 20.0, start_theta = 0/180.0*np.pi,    start_phi  = 0/180.0*np.pi,
+            f_ratio  = 1.1, ne_r = dm.parkerfit,    epsilon = 0.1, anis = 0.3,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
             sphere_gen = False, num_thread =4, early_cut= True ,dev_u = dev_u,
             save_npz = False, data_dir='./datatmp/',save_level=1,ignore_down=True,
-            Absorb_include=True,dk_record=True):
+            Absorb_include=True,dk_record=True,
+            debug=False):
     """
     name: runRays
     
@@ -155,7 +155,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             print("Scattering dt : "+str(1/dt_nu0.cpu().numpy()))
             print("Absorb Col    : "+str(1/dt_nue0.cpu().numpy()[0]))
             print("Absorb  t     : "+str((1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5)[0].cpu().numpy()))
-        
+    else :
+        steps_N = torch.tensor([steps_N])   
 
     # collect the variables of the simulation
     # collect to CPU (GPU mem is expensive)
@@ -239,25 +240,21 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
             # photon position in spherical coordinates
             # (rx,ry,rz) is the direction of anisotropic tubulence
-            fi0 = torch.atan2(ry_cur,rx_cur)
-            costheta0 = rz_cur/rr_cur
-            sintheta0 = torch.sqrt(1-costheta0**2)
-
-            
-
             if Scat_include:
-                
-
-                # rr_cur 
-                theta0 = torch.acos(rz_cur/rr_cur)
+                # rr_cur [with y along solar self rotation]
+                fi0 = torch.atan2(rx_cur,rz_cur)
+                theta0 = torch.acos(ry_cur/rr_cur)
 
                 (BxE,ByE,BzE)=solarWind.ParkerBxyzEarth(rr_cur,theta0,fi0)
 
                 BB = torch.sqrt(BxE**2+ByE**2+BzE**2)
                 fi=torch.atan2(BzE,ByE)	
-                sintheta=torch.sqrt(1.-BzE**2/BB**2)
-                costheta=BzE/BB
+                sintheta=torch.sqrt(1.-BxE**2/BB**2)
+                costheta=BxE/BB
 
+                if debug:
+                    print('fi0 : '+str(fi0[0:5]) + '    fi : '+str(fi[0:5]))
+                    
                 # rotate the k vec into the r-z coordinate
                 kcx = - kx_cur*torch.sin(fi) + ky_cur*torch.cos(fi) 
                 kcy = (- kx_cur*costheta*torch.cos(fi) 
