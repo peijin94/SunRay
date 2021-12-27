@@ -151,6 +151,9 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             print("Absorb Col    : "+str(1/dt_nue0.cpu().numpy()[0]))
             print("Absorb  t     : "+str((1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5)[0].cpu().numpy()))
     else :
+        dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
+        dt_nu0  = find_small_1e3(1/(nu_s0)) 
+        dt_nue0  = 1/nu_e0
         steps_N = torch.tensor([steps_N])       
 
     # collect the variables of the simulation
