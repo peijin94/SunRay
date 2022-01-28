@@ -78,7 +78,7 @@ def biGaussian(x,x0,sig1,sig2,A):
 
 def reduct_lv1(photon_N,r_vec_collect_local,k_vec_collect_local,
         t_collect,tau_collect_local,omega0,num_t_bins=60,
-              force_reduct_r=-1):
+              force_r_proc=-1):
     """
     Use linear fit to derive the k_vec and r_vec at the arrival shell
     Reduct the data from level 0 to level 1
@@ -91,7 +91,8 @@ def reduct_lv1(photon_N,r_vec_collect_local,k_vec_collect_local,
     idx_photon_exist = ~np.isnan(tau_collect_local[-1,:])
     N_idx_photon_exist = tau_collect_local[-1,:][~np.isnan(tau_collect_local[-1,:])].shape[0]
     
-    find_small_1e3 = lambda arr:  np.sort(arr)[int(N_idx_photon_exist*1e-3)]
+    #find_small_1e3 = lambda arr:  np.sort(arr)[int(N_idx_photon_exist*1e-3)]
+    find_small_09 = lambda arr:  np.sort(arr)[int(N_idx_photon_exist*0.1)]
     # collect the photons
     r_vec_end = r_vec_collect_local[-1,:,idx_photon_exist].reshape(3,-1)
     k_vec_end = k_vec_collect_local[-1,:,idx_photon_exist].reshape(3,-1)
@@ -102,7 +103,7 @@ def reduct_lv1(photon_N,r_vec_collect_local,k_vec_collect_local,
     rr_start = np.sqrt(np.sum(r_vec_start**2,axis=0))   
 
     # most of the photons passed this range
-    r_get = np.min([find_small_1e3(rr_end),215])
+    r_get = np.min([find_small_09(rr_end),215])
     if r_get<150:
         print("warning (r):"+str(N_idx_photon_exist))
     kx_end,ky_end,kz_end = k_vec_end[0,:],k_vec_end[1,:],k_vec_end[2,:]

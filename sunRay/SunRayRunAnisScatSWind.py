@@ -66,7 +66,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     # put variable in device
     start_r = torch.tensor([start_r])  
     PI = torch.acos(-torch.ones(1,device=dev_u))
-    nu_e0 = torch.Tensor(2.91e-6*ne_r(start_r)*20./Te**1.5).to(dev_u)
+    nu_e0 = torch.Tensor(2.91e-6*ne_r(start_r).float()*20./Te**1.5).to(dev_u)
     nu_e = nu_e0
     photon_N_exist=photon_N
     
@@ -188,7 +188,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     
     pbar=tqdm(np.arange(steps_N.cpu().float()))
     # the big loop
-    for idx_step in (pbar if verb_out else np.arange(steps_N)): #show process bar
+    for idx_step in (pbar if verb_out else np.arange(steps_N.cpu())): #show process bar
     #for idx_step in (np.arange(steps_N)):
             
         # dispersion relation reform
@@ -225,7 +225,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             dt_fix=(40/c_r/(steps_N.float()/collect_N))[0]
             
             # make sure most of the photons have proper dt 
-            dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0,dt_fix])]).to(dev_u)
+            dt = torch.min(torch.nan_to_num(
+                torch.Tensor([dt_nu,dt_ref,dt_dr,dt0,dt_fix]))).to(dev_u)
             #if verb_out :
             #    pbar.set_postfix({'dt': [dt.cpu().numpy()[0],
             #                             dt_ref.cpu(),
@@ -552,7 +553,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             import datetime
             t_stamp=str(datetime.datetime.now()).replace(' ','_').replace('-','').replace(':','')[0:15]
             np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
-                ']_[alpha'+str(np.round(anis,5))+']_R'+str(np.round(f_ratio,5))+'_'+t_stamp+'.lv1.npz', 
+                ']_[alpha'+str(np.round(anis,5))+']_R'+str(np.round(f_ratio,5))+
+                '_f'+str(np.int(np.round(freq0.cpu().data.numpy()[0]/1e3)))+'_'+t_stamp+'.lv1.npz', 
                 steps_N  = steps_N.cpu(), 
                 collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
                 start_theta = start_theta, start_phi  = start_phi, 
