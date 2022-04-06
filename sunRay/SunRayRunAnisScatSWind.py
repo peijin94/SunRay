@@ -27,6 +27,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
             sphere_gen = False, num_thread =4, early_cut= True ,dev_u = dev_u,
+            parker_dir_anis = True,
             save_npz = False, data_dir='./datatmp/',save_level=1,ignore_down=True,
             Absorb_include=True,dk_record=True,
             debug=False):
@@ -248,12 +249,16 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 fi0 = torch.atan2(rx_cur,rz_cur)
                 theta0 = torch.acos(ry_cur/rr_cur)
 
-                (BxE,ByE,BzE)=solarWind.ParkerBxyzEarth(rr_cur,theta0,fi0)
-
-                BB = torch.sqrt(BxE**2+ByE**2+BzE**2)
-                fi=torch.atan2(BzE,ByE)	
-                sintheta=torch.sqrt(1.-BxE**2/BB**2)
-                costheta=BxE/BB
+                if parker_dir_anis:
+                    (BxE,ByE,BzE)=solarWind.ParkerBxyzEarth(rr_cur,theta0,fi0)
+                    BB = torch.sqrt(BxE**2+ByE**2+BzE**2)
+                    fi=torch.atan2(BzE,ByE)	
+                    sintheta=torch.sqrt(1.-BxE**2/BB**2)
+                    costheta=BxE/BB
+                else:
+                    fi = torch.atan2(ry_cur,rx_cur)
+                    costheta = rz_cur/rr_cur
+                    sintheta = torch.sqrt(1-costheta**2)
 
                 if debug:
                     print('fi0 : '+str(fi0[0:5]) + '    fi : '+str(fi[0:5]))
