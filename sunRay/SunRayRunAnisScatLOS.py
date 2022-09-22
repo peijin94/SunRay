@@ -1,6 +1,5 @@
 # updated 2022-09-23
-# The script to do the ray tracing
-
+# The script to do the ray tracing for faraway bright sources
 
 import numpy as np
 from sunRay import plasmaFreq as pfreq
@@ -17,14 +16,15 @@ import datetime
 
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough # float64 is overcare
 
+# run ray tracing in inner-heliosphere
 def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
-            start_r = 1.75, start_theta = 0/180.0*np.pi,    start_phi  = 0/180.0*np.pi,
-            f_ratio  = 1.1, ne_r = dm.parkerfit,    epsilon = 0.4, anis = 0.2,
+            R0 = 600, Theta0 = 10/180.0*np.pi,  start_phi  = 0/180.0*np.pi,
+            fMHz  = 40, ne_r = dm.parkerfit,    epsilon = 0.4, anis = 0.2,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
-            sphere_gen = False, num_thread =4, early_cut= True ,dev_u = dev_u,
+            angular_width = 0, num_thread =4, early_cut= True ,dev_u = dev_u,
             save_npz = False, data_dir='./datatmp/',save_level=1,ignore_down=True,
-            Absorb_include=True,dk_record=True):
+            Absorb_include=True,dk_record=False):
     """
     name: runRays
     
@@ -34,8 +34,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         t_param : parameter of t step length 
             (larger t_parm corresponding to smaller dt)
         photon_N : number of photon
-        start_r : start radius of the burst, in solar radii
-        start_theta : in rad
+        R0 : angular
+        Theta0 : angular distance from the Sun
         start_phi : in rad
         f_ratio : f/f_pe
         ne_r : density model used for this calculation 
@@ -59,7 +59,9 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     torch.set_num_threads(num_thread)
     # put variable in device
-    start_r = torch.tensor([start_r])  
+    start_r = torch.tensor([np.sqrt(R0**2+215**2-2*R0*215*np.cos(Theta0))])  
+    start_theta = torch.acos((R0**2-start_r**2-215**2)/(2*R0*start_r))
+    Theta0 = torch.tensor([Theta0])
     PI = torch.acos(-torch.ones(1,device=dev_u))
     nu_e0 = 2.91e-6*ne_r(start_r)*20./Te**1.5
     nu_e = nu_e0
@@ -92,25 +94,17 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     # wave-vector of the photons
     kc0 = torch.sqrt(omega0**2. - pfreq.omega_pe_r(ne_r,rr,dev_u=dev_u)**2.)
-    if sphere_gen:
-        k_theta = torch.Tensor(np.random.uniform(low=-np.pi/2 + 1e-4 ,
-                                high= np.pi/2 ,size=photon_N)).to(dev_u) # k_z > 0 
+    if True:
+        k_theta = torch.Tensor(Theta0+np.random.uniform(low=-angular_width/2,
+                                high= -angular_width/2,size=photon_N)).to(dev_u) # k_z > 0 
         k_mu0   = torch.cos(k_theta)
-        k_phi0  = torch.Tensor(np.random.uniform(low=0 ,
-                                high= 2*np.pi, size=photon_N)).to(dev_u) # phi in all dir
+        k_phi0  = torch.Tensor(np.random.uniform(low=-angular_width/2 ,
+                                high= angular_width/2, size=photon_N)).to(dev_u) # phi in all dir
 
         kxx_k = kc0 * torch.sqrt(1-k_mu0**2.) * torch.cos(k_phi0)
         kyy_k = kc0 * torch.sqrt(1-k_mu0**2.) * torch.sin(k_phi0)
         kzz_k = kc0 * k_mu0
         k_vec = torch.stack((kxx_k,kyy_k,kzz_k),0).to(dev_u)
-    else:
-        # generate in xyz
-        k_vec_tmp = torch.randn(3,photon_N).to(dev_u)
-        k_vec = kc0 * k_vec_tmp/torch.sqrt(torch.sum(k_vec_tmp.pow(2),axis=0))
-        # ignore downward (r k not same direction)
-        idx_select = torch.nonzero(torch.sum(r_vec*k_vec,axis=0)<0,as_tuple=False)
-        if ignore_down:
-            k_vec[:,idx_select] = -k_vec[:,idx_select] 
 
     r_vec_start = r_vec
     k_vec_start = k_vec
