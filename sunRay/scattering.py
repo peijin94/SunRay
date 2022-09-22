@@ -5,6 +5,28 @@ from sunRay.parameters import dev_u,const_c
 import math
 
 
+
+@torch.enable_grad()
+def nuScatteringFixed(r,Omega,epsilon=1,dens = dm.leblanc98,dev_u=dev_u):
+# basic scattering model
+    eps = epsilon
+    PI = torch.acos(-torch.ones(1,device=dev_u))
+    h_i = 684*1e5/torch.sqrt(dens(r));
+    # inner tubulence scale in cm
+    q_av = 4/(torch.sqrt(PI)*h_i)
+    # average q assuming Gaussian spectrum
+    w_pe = dm.f_Ne(dens(r)) * 2 * PI
+    
+    eps2_L=2e3/(r**0.7)*((r-1.)/r)**2.7
+    eps2_L=eps2_L*(eps**2)/6.96e10
+    nu_s=PI/8*eps2_L*w_pe**4*const_c/Omega/(Omega**2-w_pe**2)**1.5
+    #; this is the fixed eps2/L value  by (good_rinit-1)^0.9*2/good_rinit^(0.82*2./3.+0.333)
+    #; from the results of MC simulations
+    #return,nu_s
+    #; units of rad^2/s
+    # nu_s = nuScatterKrupar(r,Omega,epsilon,dens,dev_u=dev_u)
+    return nu_s
+
 @torch.enable_grad()
 def nuScattering(r,Omega,epsilon,dens = dm.leblanc98,dev_u=dev_u):
 # basic scattering model

@@ -1,13 +1,11 @@
-# updated 2020-06-29
+# updated 2022-09-23
 # The script to do the ray tracing
-# take solarwind into consideration
+
 
 import numpy as np
 from sunRay import plasmaFreq as pfreq
 from sunRay import densityModel as dm
 from sunRay import scattering as scat 
-from sunRay import solarWind
-
 #from sunRay import showPlot as SP   # matplotlib will slow down the run
 from sunRay.parameters import c,c_r,R_S  # physics parameters
 from sunRay.parameters import dev_u  # computation device
@@ -17,19 +15,16 @@ import time
 from tqdm import tqdm # for processing bar
 import datetime
 
-
 torch.set_default_tensor_type(torch.FloatTensor) # float is enough # float64 is overcare
 
 def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
-            start_r = 20.0, start_theta = 0/180.0*np.pi,    start_phi  = 0/180.0*np.pi,
-            f_ratio  = 1.1, ne_r = dm.parkerfit,    epsilon = 0.1, anis = 0.3,
+            start_r = 1.75, start_theta = 0/180.0*np.pi,    start_phi  = 0/180.0*np.pi,
+            f_ratio  = 1.1, ne_r = dm.parkerfit,    epsilon = 0.4, anis = 0.2,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
             sphere_gen = False, num_thread =4, early_cut= True ,dev_u = dev_u,
-            parker_dir_anis = True,
             save_npz = False, data_dir='./datatmp/',save_level=1,ignore_down=True,
-            Absorb_include=True,dk_record=True,
-            debug=False, scatterFunc = scat.nuScattering):
+            Absorb_include=True,dk_record=True):
     """
     name: runRays
     
@@ -66,7 +61,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     # put variable in device
     start_r = torch.tensor([start_r])  
     PI = torch.acos(-torch.ones(1,device=dev_u))
-    nu_e0 = torch.Tensor(2.91e-6*ne_r(start_r).float()*20./Te**1.5).to(dev_u)
+    nu_e0 = 2.91e-6*ne_r(start_r)*20./Te**1.5
     nu_e = nu_e0
     photon_N_exist=photon_N
     
@@ -90,7 +85,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     r_vec = torch.stack((rxx,ryy,rzz),0).to(dev_u)
 
     omega0 = freq0*(2*PI)
-    nu_s0 = scatterFunc(rr,omega0,epsilon,ne_r,dev_u=dev_u)
+    nu_s0 = scat.nuScattering(rr,omega0,epsilon,ne_r,dev_u=dev_u)
 
     #if Show_param:
     #    SP.showParameters(ne_r,omega0,epsilon)  
@@ -146,23 +141,24 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     if steps_N == -1:
         dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
-        dt_nu0  = find_small_1e3(1/(nu_s0)).to(dev_u)
-        dt_nue0  = 1/nu_e0.to(dev_u)
-        
-        steps_N = (1/nu_e0**0.5/(1.-1./f_ratio**2) + 
-            100/c_r)*(1/dt_dr0**1+1/dt_nu0**1.5+1/dt_nue0+100)*(1+2e2*(anis**4))/20 + 2048  #(0.1+(anis**0.5)) 
+        dt_nu0  = find_small_1e3(1/(nu_s0)) 
+        dt_nue0  = 1/nu_e0
+        steps_N = (1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 
+            15/c_r)*(1/dt_dr0+1.5/dt_nu0+1/dt_nue0+25)*(0.3+(anis*4)) + 8192  #(0.1+(anis**0.5)) 
         if verb_out:
-            print(4.605e3/dt_nue0**0.5/(1.-1./f_ratio**2))
             print("Refraction dt : "+str(1/dt_dr0.cpu().numpy()))
             print("Scattering dt : "+str(1/dt_nu0.cpu().numpy()))
             print("Absorb Col    : "+str(1/dt_nue0.cpu().numpy()[0]))
             print("Absorb  t     : "+str((1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5)[0].cpu().numpy()))
     else :
-        steps_N = torch.tensor([steps_N])   
+        dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
+        dt_nu0  = find_small_1e3(1/(nu_s0)) 
+        dt_nue0  = 1/nu_e0
+        steps_N = torch.tensor([steps_N])       
 
     # collect the variables of the simulation
     # collect to CPU (GPU mem is expensive)
-    collectPoints = np.round(np.linspace(0,steps_N.cpu()-1,collect_N))
+    collectPoints = np.round(np.linspace(0,steps_N-1,collect_N))
     r_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))-1
     k_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))-1
     tau_collect = torch.zeros(collect_N,photon_N).to(torch.device('cpu'))-1
@@ -186,16 +182,16 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     time.sleep(0.5)
 
     
-    pbar=tqdm(np.arange(steps_N.cpu().float()))
+    pbar=tqdm(np.arange(steps_N))
     # the big loop
-    for idx_step in (pbar if verb_out else np.arange(steps_N.cpu())): #show process bar
+    for idx_step in (pbar if verb_out else np.arange(steps_N)): #show process bar
     #for idx_step in (np.arange(steps_N)):
             
         # dispersion relation reform
         omega = torch.sqrt(pfreq.omega_pe_r(ne_r,rr_cur,dev_u=dev_u)**2 + kc_cur**2)
         freq_pe = omega/(2*PI)
 
-        nu_s = scatterFunc(rr_cur,omega,epsilon,ne_r,dev_u=dev_u)
+        nu_s = scat.nuScattering(rr_cur,omega,epsilon,ne_r,dev_u=dev_u)
         nu_s = nu_s*(nu_s<nu_s0)+nu_s0*(~(nu_s<nu_s0)) # use the smaller nu_s
 
         # detach is essential for remove the previous calc map
@@ -222,11 +218,10 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 dt_ref = find_small_1e3(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
                 dt_dr  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
                 dt_nu  = find_small_1e3(0.1/(nu_s)) 
-            dt_fix=(40/c_r/(steps_N.float()/collect_N))[0]
+            dt_fix=(40/c_r/(steps_N/collect_N))[0]
             
             # make sure most of the photons have proper dt 
-            dt = torch.min(torch.nan_to_num(
-                torch.Tensor([dt_nu,dt_ref,dt_dr,dt0,dt_fix]))).to(dev_u)
+            dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0,dt_fix])]).to(dev_u)
             #if verb_out :
             #    pbar.set_postfix({'dt': [dt.cpu().numpy()[0],
             #                             dt_ref.cpu(),
@@ -243,25 +238,11 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
             # photon position in spherical coordinates
             # (rx,ry,rz) is the direction of anisotropic tubulence
+            fi = torch.atan2(ry_cur,rx_cur)
+            costheta = rz_cur/rr_cur
+            sintheta = torch.sqrt(1-costheta**2)
             if Scat_include:
-                # rr_cur [with y along solar self rotation]
-                fi0 = torch.atan2(rx_cur,rz_cur)
-                theta0 = torch.acos(ry_cur/rr_cur)
 
-                if parker_dir_anis:
-                    (BxE,ByE,BzE)=solarWind.ParkerBxyzEarth(rr_cur,theta0,fi0)
-                    BB = torch.sqrt(BxE**2+ByE**2+BzE**2)
-                    fi=torch.atan2(BzE,ByE)	
-                    sintheta=torch.sqrt(1.-BxE**2/BB**2)
-                    costheta=BxE/BB
-                else:
-                    fi = torch.atan2(ry_cur,rx_cur)
-                    costheta = rz_cur/rr_cur
-                    sintheta = torch.sqrt(1-costheta**2)
-
-                if debug:
-                    print('fi0 : '+str(fi0[0:5]) + '    fi : '+str(fi[0:5]))
-                    
                 # rotate the k vec into the r-z coordinate
                 kcx = - kx_cur*torch.sin(fi) + ky_cur*torch.cos(fi) 
                 kcy = (- kx_cur*costheta*torch.cos(fi) 
@@ -557,9 +538,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             import datetime
             t_stamp=str(datetime.datetime.now()).replace(' ','_').replace('-','').replace(':','')[0:15]
             np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
-                ']_[alpha'+str(np.round(anis,5))+']_R'+str(np.round(f_ratio,5))+
-                '_f'+str(np.int(np.round(freq0.cpu().data.numpy()[0]/1e3)))+'_'+t_stamp+'.lv1.npz', 
-                steps_N  = steps_N.cpu(), 
+                ']_[alpha'+str(np.round(anis,5))+']_R'+str(np.round(f_ratio,5))+'_'+t_stamp+'.lv1.npz', 
+                steps_N  = steps_N, 
                 collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
                 start_theta = start_theta, start_phi  = start_phi, 
                 f_ratio  = f_ratio, epsilon = epsilon , anis = anis, asym = asym,
