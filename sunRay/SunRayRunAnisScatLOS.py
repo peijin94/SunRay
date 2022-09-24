@@ -19,7 +19,8 @@ torch.set_default_tensor_type(torch.FloatTensor) # float is enough # float64 is 
 # run ray tracing in inner-heliosphere
 def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             R0 = 800, Theta0 = 10/180.0*np.pi,  start_phi  = 0/180.0*np.pi,
-            fMHz  = 40+1e-8, ne_r = dm.parkerfit,    epsilon = 0.1, anis = 0.2,
+            fMHz  = 40,fMHz_batch=[40], freq_batching=True,
+            ne_r = dm.parkerfit,    epsilon = 0.1, anis = 0.2,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
             angular_width = 0, num_thread =4, early_cut= True ,dev_u = dev_u,
@@ -61,14 +62,14 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     # put variable in device
     start_r = np.sqrt(R0**2+215**2-2*R0*215*np.cos(Theta0))
     start_theta = np.arccos(-(R0**2-start_r**2-215**2)/(2*215*start_r))
-    start_r = torch.Tensor([start_r])
+    start_r = torch.Tensor([start_r]).to(dev_u)
     PI = torch.acos(-torch.ones(1,device=dev_u))
     nu_e0 = 2.91e-6*ne_r(start_r)*20./Te**1.5
     nu_e = nu_e0
     photon_N_exist=photon_N
     
     # frequency of the wave
-    freq0 = torch.tensor([fMHz*1e6])
+    freq0 = torch.tensor([fMHz*1e6]).to(dev_u)
 
     if verb_out:
         print('----------------------------------')
@@ -79,9 +80,9 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     #freq0 = torch.Tensor([freq0]).to(dev_u)
 
     # position of the photons
-    rxx = start_r * torch.Tensor(np.sin(start_theta) * np.cos(start_phi) * np.ones(photon_N))
-    ryy = start_r * torch.Tensor(np.sin(start_theta) * np.sin(start_phi) * np.ones(photon_N))
-    rzz = start_r * torch.Tensor(np.cos(start_theta) * np.ones(photon_N))
+    rxx = start_r * torch.Tensor(np.sin(start_theta) * np.cos(start_phi) * np.ones(photon_N)).to(dev_u)
+    ryy = start_r * torch.Tensor(np.sin(start_theta) * np.sin(start_phi) * np.ones(photon_N)).to(dev_u)
+    rzz = start_r * torch.Tensor(np.cos(start_theta) * np.ones(photon_N)).to(dev_u)
     rr = start_r.to(dev_u) * torch.ones(photon_N).to(dev_u)
     rr_cur = rr # rr_cur [current rr for for loop]
     r_vec = torch.stack((rxx,ryy,rzz),0).to(dev_u)
@@ -149,11 +150,11 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
         dt_nu0  = find_small_1e3(1/(nu_s0)) 
         dt_nue0  = 1/nu_e0
-        steps_N = torch.tensor([steps_N])       
+        steps_N = torch.tensor([steps_N]).to(dev_u)       
 
     # collect the variables of the simulation
     # collect to CPU (GPU mem is expensive)
-    collectPoints = np.round(np.linspace(0,steps_N-1,collect_N))
+    collectPoints = np.round(np.linspace(0,steps_N.cpu()-1,collect_N))
     r_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))-1
     k_vec_collect = torch.zeros(collect_N,3,photon_N).to(torch.device('cpu'))-1
     tau_collect = torch.zeros(collect_N,photon_N).to(torch.device('cpu'))-1
@@ -177,9 +178,9 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     time.sleep(0.5)
 
     
-    pbar=tqdm(np.arange(steps_N))
+    pbar=tqdm(np.arange(steps_N.cpu()))
     # the big loop
-    for idx_step in (pbar if verb_out else np.arange(steps_N)): #show process bar
+    for idx_step in (pbar if verb_out else np.arange(steps_N.cpu())): #show process bar
     #for idx_step in (np.arange(steps_N)):
             
         # dispersion relation reform
@@ -213,10 +214,12 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 dt_ref = find_small_1e3(torch.abs(kc_cur/ (domega_pe_dr*c_r)/t_param)) # t step
                 dt_dr  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
                 dt_nu  = find_small_1e3(0.1/(nu_s)) 
-            dt_fix=(40/c_r/(steps_N/collect_N))[0]
+            dt_fix=(40/c_r/(steps_N/collect_N))[0].cpu()
             
             # make sure most of the photons have proper dt 
-            dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0,dt_fix])]).to(dev_u)
+            dt = torch.Tensor([np.nanmin([dt_nu.cpu(),
+                                dt_ref.cpu(),dt_dr.cpu(),
+                                dt0.cpu(),dt_fix.cpu()])]).to(dev_u)
             #if verb_out :
             #    pbar.set_postfix({'dt': [dt.cpu().numpy()[0],
             #                             dt_ref.cpu(),
@@ -474,7 +477,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             t_stamp=str(datetime.datetime.now()).replace(' ','_').replace('-','').replace(':','')[0:15]
             np.savez_compressed(data_dir+'RUN_[eps'+str(np.round(epsilon,5)) +
                 ']_[alpha'+str(np.round(anis,5))+']_R'+str(np.round(f_ratio,5))+'_'+t_stamp+'.lv1.npz', 
-                steps_N  = steps_N, 
+                steps_N  = steps_N.cpu(), 
                 collect_N = collect_N, photon_N = photon_N, start_r = start_r, 
                 start_theta = start_theta, start_phi  = start_phi, 
                 epsilon = epsilon , anis = anis, asym = asym,
@@ -551,7 +554,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 dky_scat_avail=dky_scat_avail,
                 dkz_scat_avail=dkz_scat_avail)
             
-    return (steps_N  ,  collect_N,  photon_N, start_r,  start_theta, start_phi, 
+    return (steps_N.cpu()  ,  collect_N,  photon_N, start_r,  start_theta, start_phi, 
             epsilon ,  anis, asym,  omega0.cpu(), freq0.cpu(), t_collect.cpu(), tau.cpu(),
             r_vec_collect_local,  k_vec_collect_local,  tau_collect_local,
             dk_refr_collect, dk_scat_collect)
