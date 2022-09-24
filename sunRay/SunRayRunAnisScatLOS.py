@@ -19,7 +19,7 @@ torch.set_default_tensor_type(torch.FloatTensor) # float is enough # float64 is 
 # run ray tracing in inner-heliosphere
 def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             R0 = 800, Theta0 = 10/180.0*np.pi,  start_phi  = 0/180.0*np.pi,
-            fMHz  = 40,fMHz_batch=[40], freq_batching=True,
+            fMHz  = 40,fMHz_batch=[40], freq_batching=False,
             ne_r = dm.parkerfit,    epsilon = 0.1, anis = 0.2,
             asym = 1.0, Te = 86.0, Scat_include = True, Show_param = True,
             Show_result_k = False, Show_result_r = False,  verb_out = False,
@@ -69,11 +69,19 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     photon_N_exist=photon_N
     
     # frequency of the wave
-    freq0 = torch.tensor([fMHz*1e6]).to(dev_u)
+
+    
+    if freq_batching:
+        freq0 = np.zeros(photon_N)
+        for idx,partition in enumerate(np.array_split(np.arange(photon_N), len(fMHz_batch))):
+            freq0[partition] = fMHz_batch[idx]*1e6
+        freq0 = torch.tensor(freq0).to(dev_u)
+    else:
+        freq0 = torch.tensor([fMHz*1e6]).to(dev_u)
 
     if verb_out:
         print('----------------------------------')
-        print('Frequency : '+str(freq0.cpu().data.numpy()/1e6)[1:7]+'MHz')
+        print('Frequency : '+str(freq0[0].cpu().data.numpy()/1e6)[1:7]+'MHz')
         print('Compute with : '+str(dev_u))
         print('----------------------------------')
 
@@ -87,7 +95,9 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     rr_cur = rr # rr_cur [current rr for for loop]
     r_vec = torch.stack((rxx,ryy,rzz),0).to(dev_u)
 
+
     omega0 = freq0*(2*PI)
+
     nu_s0 = scat.nuScattering(rr,omega0,epsilon,ne_r,dev_u=dev_u)
     
     #if Show_param:
@@ -119,7 +129,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     # before record steps for diff
     domega_pe_dxyz = pfreq.domega_dxyz_1d(ne_r,r_vec.detach(),dev_u=dev_u)
 
-    Exp_size = 1.25*30./(freq0/1e6)
+    Exp_size = 1.25*30./(torch.mean(freq0)/1e6)
     dt0 = 0.1*Exp_size/c_r
     tau = torch.zeros(rr_cur.shape).to(dev_u)
     dk_inte_refr = torch.zeros(rr_cur.shape).to(dev_u)
