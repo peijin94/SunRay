@@ -15,7 +15,7 @@ import time
 from tqdm import tqdm # for processing bar
 import datetime
 
-torch.set_default_tensor_type(torch.FloatTensor) # float is enough # float64 is overcare
+torch.set_default_dtype(torch.float32) # float is enough # float64 is overcare
 
 def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
             start_r = 1.75, start_theta = 0/180.0*np.pi,    start_phi  = 0/180.0*np.pi,
@@ -59,10 +59,10 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
 
     torch.set_num_threads(num_thread)
     # put variable in device
-    start_r = torch.tensor([start_r])  
+    start_r = torch.tensor([start_r])
     PI = torch.acos(-torch.ones(1,device=dev_u))
     nu_e0 = 2.91e-6*ne_r(start_r)*20./Te**1.5
-    nu_e = nu_e0
+    nu_e = nu_e0.to(dev_u)
     photon_N_exist=photon_N
     
     # frequency of the wave
@@ -142,7 +142,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     if steps_N == -1:
         dt_dr0  = find_small_1e3(rr_cur/omega0*kc_cur)/t_param
         dt_nu0  = find_small_1e3(1/(nu_s0)) 
-        dt_nue0  = 1/nu_e0
+        dt_nue0  = 1/nu_e0.to(dev_u)
+        nu_e0 = nu_e0.to(dev_u)
         steps_N = (1.5*4.605/nu_e0/(1.-1./f_ratio**2)**0.5 + 
             15/c_r)*(1/dt_dr0+1.5/dt_nu0+1/dt_nue0+25)*(0.3+(anis*4)) + 8192  #(0.1+(anis**0.5)) 
         if verb_out:
@@ -156,6 +157,7 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
         dt_nue0  = 1/nu_e0
         steps_N = torch.tensor([steps_N])       
 
+    steps_N = steps_N.cpu().numpy()
     # collect the variables of the simulation
     # collect to CPU (GPU mem is expensive)
     collectPoints = np.round(np.linspace(0,steps_N-1,collect_N))
@@ -179,9 +181,6 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
     idx_collect  =  0
     t_current = 0
 
-    time.sleep(0.5)
-
-    
     pbar=tqdm(np.arange(steps_N))
     # the big loop
     for idx_step in (pbar if verb_out else np.arange(steps_N)): #show process bar
@@ -220,8 +219,8 @@ def runRays(steps_N  = -1 , collect_N = 180, t_param = 20.0, photon_N = 10000,
                 dt_nu  = find_small_1e3(0.1/(nu_s)) 
             dt_fix=(40/c_r/(steps_N/collect_N))[0]
             
-            # make sure most of the photons have proper dt 
-            dt = torch.Tensor([np.nanmin([dt_nu,dt_ref,dt_dr,dt0,dt_fix])]).to(dev_u)
+            # make sure most of the photons have proper dt
+            dt = torch.Tensor([np.nanmin([dt_nu.cpu(),dt_ref.cpu(),dt_dr.cpu(),dt0[0].cpu(),dt_fix])]).to(dev_u)
             #if verb_out :
             #    pbar.set_postfix({'dt': [dt.cpu().numpy()[0],
             #                             dt_ref.cpu(),

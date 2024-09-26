@@ -4,6 +4,14 @@ The algorithm of anisotropic scattering is reproduced from the code mentioned in
 
 The major computational part is done with the help of PyTorch, which is known as an excellent machine learning framework, but also a powerful tool for numerical computation, the computaion can be done with either CPU or GPU. Also the best feature is the **autodiff**, which carried out most of the differential works in the computaion.
 
+## installation
+
+```
+git clone https://github.com/peijin94/SunRay.git
+cd SunRay
+python -m pip install .
+```
+
 ## Dependency
 
 Note: this is done with:  

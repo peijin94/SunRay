@@ -13,7 +13,7 @@ from matplotlib import rc
 #rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 ## for Palatino and other serif fonts use:
 #rc('font',**{'family':'serif','serif':['Palatino']})
-rc('text', usetex=True)
+#rc('text', usetex=True)
 
 def showParameters(Ne_r,omega,epsilon):
     rr = torch.linspace(3,100,300).to(dev_u)

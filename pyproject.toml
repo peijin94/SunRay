@@ -31,5 +31,4 @@ Documentation = "https://github.com/peijin94/SunRay/blob/main/README.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["sunray*"]
-exclude = ["tests*"]
+include = ["sunRay*"]
