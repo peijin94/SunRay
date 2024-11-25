@@ -1,9 +1,0 @@
-### dependency
-# conda install pytorch==1.5.0 torchvision cpuonly -c pytorch
-
-pytorch
-torchvision
-scipy
-tqdm
-matplotlib
-numba

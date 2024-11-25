@@ -80,7 +80,7 @@ def XYDistributionImageHist(x_data,y_data,weights_data=1,
     ax_main = plt.axes(rect_scatter)
 
     # plot the major 2-D distribution
-    XYDistributionImage(ax_main,x,y,weights_data,bins_data)
+    XYDistributionImage(ax_main,x,y,weights_data,bins_data,xlim=x_lim,ylim=y_lim)
 
     ax_histx = plt.axes(rect_histx)
     ax_histx.tick_params(direction='in', labelbottom=False)
@@ -111,7 +111,7 @@ def XYDistributionImageHist(x_data,y_data,weights_data=1,
     return fig,ax_main
     
 
-def XYDistributionImage(ax_main,x,y,weights_data,bins_data=100):
+def XYDistributionImage(ax_main,x,y,weights_data,bins_data=100, xlim=None, ylim=None):
     ax_main.tick_params(direction='in', top=True, right=True)
     # the scatter plot:
     img_2d,xx,yy = np.histogram2d(x,y,weights=weights_data,bins=bins_data)
@@ -130,6 +130,11 @@ def XYDistributionImage(ax_main,x,y,weights_data,bins_data=100):
     # now determine nice limits by hand:
     ax_main.set_xlim([np.min(xx),np.max(xx)])
     ax_main.set_ylim([np.min(yy),np.max(yy)])
+
+    if xlim is not None:
+        ax_main.set_xlim(xlim)
+    if ylim is not None:
+        ax_main.set_ylim(ylim)
 
     return imOBJ
 

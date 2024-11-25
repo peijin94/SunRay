@@ -15,13 +15,13 @@ def R_to_freq(R,f_ratio,ne_r = dm.parkerfit):
     """
     return pf.omega_pe_r_np(ne_r,torch.Tensor([R])) /2/PI  *f_ratio
 
-def freq_to_R(f,f_ratio,ne_r = dm.parkerfit):
+def freq_to_R(f,f_ratio,ne_r = dm.parkerfit, r0=3):
     """
     Starting height for wave frequency f
     """
     f_pe = f/f_ratio
     func  = lambda R : f_pe - (pf.omega_pe_r_np(ne_r,torch.Tensor([R])) /2/PI).numpy()[0]
-    R_solution = fsolve(func, 2) # solve the R
+    R_solution = fsolve(func, r0) # solve the R
     return R_solution # [R_s]
 
 def rect_to_sphere(rx,ry,rz):

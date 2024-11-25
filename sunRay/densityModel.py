@@ -27,6 +27,19 @@ def newkirk(r):
     return 4.2e4*10. **(4.32/r)
 
 @torch.enable_grad()
+def dens3dcoronalloop(r_vec, baseNe=parkerfit,dens_ud_ratio = 8,dens_grad_width = 0.10,
+                    r_shift = 1.2, r_size = 0.3):
+    # r_vec: 3xN
+    xx = r_vec[0,:]
+    yy = r_vec[1,:]
+    zz = r_vec[2,:]
+    rr = torch.sqrt(xx**2+yy**2+zz**2)
+    rr_shifted = torch.sqrt((xx-r_shift)**2+yy**2+(zz)**2)
+    dens = baseNe(rr)
+    dens =  dens*(1+(dens_ud_ratio-1)*((1-torch.tanh((rr_shifted-r_size)/dens_grad_width))/2))
+    return dens
+
+@torch.enable_grad()
 def f_Ne(N_e): 
     # in Hz
     return 8.93e3 * (N_e)**(0.5)

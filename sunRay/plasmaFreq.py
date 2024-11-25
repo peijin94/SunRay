@@ -10,6 +10,13 @@ def omega_pe_r(ne_r,r,dev_u=dev_u):
     PI = torch.acos(-torch.ones(1,device=dev_u))
     return 8.93e3* (ne_r(r))**(0.5) * 2 * PI
 
+
+@torch.enable_grad()
+def omega_pe_r_vec(ne_r_vec, r_vec,dev_u=dev_u):
+    # plasma frequency density relationship
+    PI = torch.acos(-torch.ones(1,device=dev_u))
+    return 8.93e3* (ne_r_vec(r_vec))**(0.5) * 2 * PI
+
 def omega_pe_r_np(ne_r,r):
     # plasma frequency density relationship
     return 8.93e3* (ne_r(r))**(0.5) * 2 * np.pi
@@ -26,10 +33,10 @@ def domega_dxyz_1d(ne_r,r_vec,dev_u=dev_u):
 
 
 @torch.enable_grad()
-def domega_dxyz_3d(ne_r_3d,r_vec,dev_u=dev_u):
+def domega_dxyz_vec(ne_r_vec,r_vec,dev_u=dev_u):
     # differential of omegape
     r_vec.requires_grad_(True)
-    omega_pe_xyz = omega_pe_r(ne_r_3d,r_vec,dev_u=dev_u)#.repeat(3,1) # to be size:3*N 
+    omega_pe_xyz = omega_pe_r_vec(ne_r_vec,r_vec,dev_u=dev_u)#.repeat(3,1) # to be size:3*N 
     omega_pe_xyz.backward(torch.ones(omega_pe_xyz.shape,device=dev_u)) # for the gradient of omega
     diff_vec = r_vec.grad.data
     return diff_vec.detach()
